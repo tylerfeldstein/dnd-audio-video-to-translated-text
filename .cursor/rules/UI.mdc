@@ -1,0 +1,89 @@
+---
+description: AI Coding Agent Rules
+globs: 
+alwaysApply: false
+---
+# AI Coding Agent Rules: Next.js + Tailwind + Shadcn + Convex + Inngest
+
+**Objective:** Generate consistent, high-quality UI pages and components adhering to the specified tech stack and design principles.
+
+## 1. Core Technologies & Priorities
+
+* **Framework:** Next.js (App Router).
+* **Styling:** Tailwind CSS is the primary styling engine.
+* **UI Components:** **Shadcn UI** is the **default and preferred** component library. Use its components whenever available.
+* **Backend & Data:** Convex for real-time database, queries, mutations, and actions.
+* **Background Jobs:** Inngest for handling background tasks.
+* **Animations:** `framer-motion` for subtle and purposeful animations.
+
+## 2. Styling & Layout (Tailwind CSS & Shadcn UI)
+
+* **Utility-First:** Strictly use Tailwind CSS utility classes for all styling. **Avoid custom CSS files or `<style>` tags.**
+* **Shadcn Theme:** Adhere to the project's configured Shadcn theme (colors, fonts, etc.) defined in `tailwind.config.js` and `globals.css`. Use theme variables (e.g., `bg-background`, `text-primary`, `border-border`).
+* **Default Styling for Containers/Cards:**
+    * Apply `rounded-lg` or `rounded-xl` consistently (choose one, let's default to `rounded-lg` for better nesting potential, unless a larger radius like `rounded-2xl` is specifically requested for outer containers).
+    * Use `border` and `border-border` for subtle definition.
+    * Apply `shadow-sm` or `shadow-md` for elevation (use `shadow-md` for primary cards/containers).
+    * Default padding: `p-4` or `p-6` (`p-6` for larger cards/sections).
+* **Spacing:**
+    * Use Tailwind `gap-*` utilities for spacing between elements in flex/grid containers (default `gap-4`).
+    * Use Tailwind `space-y-*` or `space-x-*` for stacking elements (default `space-y-4`).
+    * Use margin utilities (`mt-*`, `mb-*`, etc.) for spacing between distinct sections (default `mt-6` or `mt-8`).
+* **Responsiveness:** Design mobile-first. Use Tailwind's responsive modifiers (e.g., `md:`, `lg:`) to adapt layouts for different screen sizes.
+* **Typography:** Utilize the typography classes configured via the Tailwind Typography plugin or defined within the Shadcn theme. Use semantic HTML tags (`h1`-`h6`, `p`, `span`). Use Shadcn typography components (`Heading`, `Text`, `Code`) if available and appropriate.
+* **Icons:** Use `lucide-react` as it's integrated with Shadcn.
+
+## 3. Component Design & Structure (Next.js & Shadcn UI)
+
+* **Component Source:** Always prioritize importing components directly from Shadcn UI (e.g., `import { Button } from '@/components/ui/button';`).
+* **Composition:** Build complex UI elements by composing smaller Shadcn components (e.g., use `Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter`).
+* **Presentational vs. Container:**
+    * Keep UI components primarily presentational (receive data and callbacks via props).
+    * Use Next.js pages or specific container components to fetch data (using Convex hooks) and handle logic.
+* **Client vs. Server Components (Next.js):**
+    * Default to Server Components for static content and data fetching where possible.
+    * Use `'use client';` directive only when necessary (for interactivity, React hooks like `useState`, `useEffect`, or Convex hooks).
+    * Components interacting with Convex (`useQuery`, `useMutation`, `useAction`) **must** be Client Components.
+* **File Structure:**
+    * Place Shadcn UI components generated via CLI in `components/ui/`.
+    * Create shared, reusable application components under `components/shared/`.
+    * Place feature-specific components close to their routes or within a dedicated `components/feature-name/` directory.
+    * Next.js App Router structure (`app/` directory with `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`).
+* **Props:** Use clear, descriptive TypeScript interfaces for component props.
+
+## 4. Data Handling & State Management (Convex & React)
+
+* **Data Fetching:** Use Convex hooks (`useQuery`, `useMutation`, `useAction`) within Client Components (`'use client';`) for all interactions with the Convex backend.
+* **Server Actions (Next.js):** Can be used alongside Convex, especially for form submissions that might orchestrate multiple steps or don't require real-time updates immediately reflected by `useQuery`. If using Server Actions, ensure proper loading/disabled states on forms.
+* **Loading States:**
+    * Utilize the loading state provided by Convex hooks (`useQuery` returns data, check if it's `undefined`).
+    * Display Shadcn `Skeleton` components matching the shape of the content being loaded.
+    * Use spinners (e.g., `<Loader2 className="animate-spin" />`) within buttons or specific areas during mutations/actions.
+* **Error Handling:**
+    * Check for errors returned by Convex hooks.
+    * Display user-friendly error messages using Shadcn `Alert` (with `variant="destructive"`) or `Toast`. Do not expose raw error details to the user.
+* **Local UI State:** Use React hooks (`useState`, `useReducer`) for managing component-level UI state (e.g., form inputs, modal visibility) within Client Components. Avoid complex global state managers unless absolutely necessary; rely on Convex for server state synchronization.
+
+## 5. Forms
+
+* **Implementation:** Use the Shadcn `Form` component, which integrates `react-hook-form` and `zod`.
+* **Validation:** Define form schemas using `zod`.
+* **Components:** Use Shadcn input components (`Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, etc.) within the form structure.
+* **Submission:** Handle form submission using `onSubmit` provided by `react-hook-form`, typically calling a Convex `useMutation` or `useAction`, or a Next.js Server Action.
+* **Feedback:** Disable the submit button and show a loading indicator during submission. Display success or error messages using `Toast`.
+
+## 6. User Feedback & Experience
+
+* **Inngest Task Feedback:** When triggering Inngest jobs, provide immediate feedback (e.g., "Processing started..." via `Toast`). If possible, display the status of ongoing/completed jobs relevant to the user's context (e.g., a status badge, an item in a list updating its state via Convex real-time updates).
+* **Interactivity:** Use Shadcn components for interactive elements (`DropdownMenu`, `Dialog`, `Popover`, `Tooltip`).
+* **Animations (`framer-motion`):**
+    * Apply animations subtly for entrance (fade-in, slide-up), list item additions/removals, and state changes (e.g., status indicators).
+    * Example: `<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>...</motion.div>`
+    * Avoid overly complex or distracting animations.
+
+## 7. Code Quality
+
+* **TypeScript:** Write all code in TypeScript. Use strong typing for props, state, and function signatures.
+* **Clarity:** Write clear, readable code. Add comments only when necessary to explain complex logic.
+* **ESLint/Prettier:** Adhere to project-configured linting and formatting rules.
+

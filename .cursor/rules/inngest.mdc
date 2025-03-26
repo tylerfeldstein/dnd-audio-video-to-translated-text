@@ -1,0 +1,76 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# INNGEST RULES
+
+## Function Conventions
+- All background logic must be written using `inngest.createFunction` and placed in `inngest/functions/`.
+- Use descriptive function `id` and dot-case event names (e.g., `web.scrape.completed`, `agent.run.requested`).
+
+```ts
+export const processData = inngest.createFunction(
+  { id: "process-data" },
+  { event: "data.scraped" },
+  async ({ event, step }) => {
+    // ...
+  }
+);
+```
+
+## Triggering Events
+- Use `inngest.send()` to emit events from server actions or backend code.
+- In Python, use Inngest REST API to send events with proper auth.
+
+## Step Management
+- Use `step.run()` for each logical part of a job.
+- Add `step.sleep()` and `step.retry()` for resilience and observability.
+
+# AGENTKIT RULES 
+
+## Agent Design
+- Use `defineAgent()` for agents, and define modular tools via `defineTool()`.
+- Tools must be colocated with agents or organized in `/agents/tools/`.
+
+```ts
+const summarizeText = defineTool({
+  name: "summarize-text",
+  description: "Summarizes content using LLM",
+  run: async ({ input }: { input: string }) => { /* ... */ }
+});
+```
+
+## Agent Logging
+- Each agent run must log:
+  - `agentRunId`
+  - input
+  - status
+  - output
+  - error (if applicable)
+- Log output and run metadata to SQLite tables (`agent_runs`, `tool_logs`, etc.)
+
+## Prompt Structure
+- Store reusable prompts in `/lib/prompts/`.
+- Use templating (e.g. Mustache, or string literals) to maintain prompt versions.
+
+
+
+#  TYPESCRIPT RULES 
+
+- Always use strict mode (`"strict": true` in `tsconfig.json`)
+- Explicitly type props, function returns, and complex objects.
+- Validate all external input and LLM output with `zod`.
+
+# AI/LLM RULES 
+
+- Never trust LLM output directly; validate with `zod`.
+- Store all input/output and logs in SQLite tables for traceability.
+- Structure prompt logic — keep roles (`system`, `user`, `assistant`) consistent.
+- Include prompt version and agent version in job metadata.
+
+# ENVIRONMENT & MISC RULES 
+
+- All environment variables must use safe naming (e.g., `NEXT_PUBLIC_`, `INNGEST_KEY`, etc.).
+- Use `env.ts` wrapper to load and validate required vars at runtime.
+- Avoid `any`, `@ts-ignore`, or inline fetch — abstract and validate all I/O.

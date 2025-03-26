@@ -1,0 +1,95 @@
+---
+description: Project Architecture
+globs: 
+alwaysApply: false
+---
+# Project Architecture
+
+## Overview
+
+This project is a simple web app that allows users to drag and drop audio or video files. Files are transcribed using Whisper via Inngest background jobs. The transcriptions are stored in a SQLite database and displayed in the frontend UI.
+
+---
+
+## Frontend
+
+### Tech Stack
+
+- Next.js 15 (App Router)
+- TypeScript
+- Tailwind CSS
+- Shadcn components
+- Shadcn UI (as needed)
+
+### Folder Structure
+
+```
+/app
+  └── (routing and pages)
+
+/components
+  └── upload/
+      ├── Dropzone.tsx
+      └── FileList.tsx
+  └── transcription/
+      └── TranscriptionTable.tsx
+
+/actions
+  └── transcription/
+      ├── uploadFile.ts
+      └── pollJobStatus.ts
+```
+
+### Rules
+
+- UI components go in `/components` and are grouped by feature
+- Backend logic lives in `/actions` and uses Server Actions
+- No direct DB access from frontend — everything goes through Server Actions or Convex functions
+- Styling is done exclusively with Tailwind CSS
+- Use functional, small components with clear boundaries
+
+---
+
+## Backend
+
+### Tech Stack
+
+- Python 3
+- `faster-whisper` (installed via Homebrew)
+- SQLite (local lightweight DB)
+- Inngest (for job orchestration)
+
+### Folder Structure
+
+```
+/backend
+  ├── transcriber/
+      ├── __init__.py
+      ├── transcribe.py
+  ├── db/
+      ├── __init__.py
+      ├── models.py
+      └── write_transcript.py
+  └── inngest/
+      └── handlers.py
+```
+
+### Rules
+
+- All transcription logic using Whisper lives in `/transcriber`
+- SQLite models and write logic go in `/db`
+- Inngest event handlers are defined in `/inngest`
+- Jobs should be stateless and receive file paths and metadata only
+- Output is written to SQLite with job ID and timestamp
+- Python should use `typing` for type safety and maintainability
+
+---
+
+## Workflow
+
+1. User uploads files via drag-and-drop UI
+2. File metadata is sent to `/actions/transcription/uploadFile.ts`
+3. This triggers an Inngest event
+4. Python backend handles the transcription with `faster-whisper`
+5. Transcription is stored in SQLite
+6. Frontend polls job status and updates UI table on completion

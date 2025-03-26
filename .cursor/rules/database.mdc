@@ -1,0 +1,18 @@
+---
+description: database
+globs: 
+alwaysApply: false
+---
+# DATABASE RULES (SQLite)
+
+## ORM/Query Layer
+- Use an ORM like **Drizzle**, **Kysely**, or raw SQL (prefer prepared statements).
+- Abstract DB operations into `db/queries/` or `db/models/` with clear separation of read/write logic.
+
+## Data Consistency
+- Always validate inputs before writes using `zod` or `valibot`.
+- Define clear DB schema and index fields used for querying agent jobs and AI metadata (`jobId`, `runId`, `status`, `createdAt`).
+
+## Persistence
+- Store structured AI output, agent runs, and tool logs in separate tables (`agent_runs`, `tool_outputs`, `ai_jobs`, etc.).
+- Use foreign keys when linking agent executions to data.

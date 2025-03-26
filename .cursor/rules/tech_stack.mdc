@@ -1,0 +1,60 @@
+---
+description: Tech Stack
+globs: 
+alwaysApply: false
+---
+# 🛠 Tech Stack
+
+- **Framework:** Next.js 15 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **UI Kit:** Shadcn
+- **Components:** Shadcn (when needed)
+
+---
+
+## 🗂 Folder Structure
+
+### Components
+
+- All UI components live in `/components`
+- Organize by **feature or domain**
+  - E.g., `/components/auth/LoginForm.tsx`
+- Keep components **small, focused**, and **reusable**
+- Prefer composition over configuration
+
+### Actions
+
+- All logic lives in `/actions`
+- Use **Server Actions** for backend logic
+- Organize by **domain**
+  - E.g., `/actions/user/updateUser.ts`
+- No API routes unless integrating external services
+
+---
+
+## 📏 Rules
+
+- Group related components and actions into **logical folders**
+- Use **TypeScript** strictly — no `any` unless unavoidable
+- Use **Tailwind** for all styling — no external CSS files
+- Stick to **Shadcn** components when possible
+- Avoid large files — break up if over ~100 lines
+- Keep functions **pure and focused** — 1 responsibility per file
+
+---
+
+## 📁 Examples
+
+```
+/components/
+  └── auth/
+      ├── LoginForm.tsx
+      └── SignupForm.tsx
+
+/actions/
+  └── user/
+      ├── getUser.ts
+      └── updateUser.ts
+```
+

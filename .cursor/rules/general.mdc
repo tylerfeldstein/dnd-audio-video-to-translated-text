@@ -1,0 +1,22 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# GENERAL PROJECT CONVENTIONS
+
+## Language & Frameworks
+- All frontend code must be in **TypeScript** using **Next.js 15 App Router**.
+- All backend logic should use **Server Actions**, **background functions** via Inngest, or Python microservices.
+- Long-running or async workflows must use **Inngest**, triggered by events or actions.
+- AI workflows must use **AgentKit via Inngest agents** and follow composable, tool-based agent patterns.
+
+## Folder & File Structure
+- Store backend logic in `/actions/`, `inngest/functions/`, or `/python/` as appropriate.
+- Store React components in `@/components/ui/` and keep them reusable and decoupled.
+- Use PascalCase for component and file names (`AgentOrchestrator.tsx`), camelCase for functions/variables (`handleSubmit`).
+- Separate reusable logic into `/lib/` or `/utils/`.
+
+## Imports
+- Prefer absolute imports (e.g., `@/lib/utils`) over relative paths.
+- Group imports: external libs, internal modules, then styles.
