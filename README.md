@@ -16,26 +16,45 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## convex setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```sh
+cd docker/convex
+docker compose up -d
+```
 
-## Learn More
+Run the command to get your admin key
 
-To learn more about Next.js, take a look at the following resources:
+```sh
+docker compose exec backend ./generate_admin_key.sh
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+paste the key in your .env.local
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```sh
+CONVEX_SELF_HOSTED_URL='http://127.0.0.1:3210'
+CONVEX_SELF_HOSTED_ADMIN_KEY='<your admin key>'
+```
 
-## Deploy on Vercel
+the install convex into repo
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```sh
+npm install convex@latest
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+you can start convex individually with
 
-# libre translate
+```sh
+npx convex dev
+```
+
+or run with frontend
+
+```sh
+pnpm dev:stack
+```
+
+## libre translate
 
 To start the container
 
@@ -44,9 +63,38 @@ cd ./docker/
 git clone https://github.com/LibreTranslate/LibreTranslate/tree/main
 ```
 
-then run
+Modify the dockerfile to change the ports and file mounts
+
+```yaml
+services:
+  libretranslate:
+    container_name: libretranslate
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "6000:5000"
+    tty: true
+    healthcheck:
+      test: ["CMD-SHELL", "./venv/bin/python scripts/healthcheck.py"]
+    environment:
+      - LT_API_KEYS=true
+      - LT_API_KEYS_DB_PATH=/app/db/api_keys.db
+      - LT_UPDATE_MODELS=true
+    volumes:
+      - ~/libretranslate/api_keys:/app/db
+      - ~/libretranslate/models:/home/libretranslate/.local:rw
+
+volumes:
+  libretranslate_api_keys:
+  libretranslate_models:
+```
+
+Then bring the docker container up
 
 ```sh
-cd LibreTranslate
-./run.sh  --port 6000
+docker-compose up -d --build
 ```
+
+The Api docs for the container are at `https://libretranslate.com/docs/#/translate/get_languages`

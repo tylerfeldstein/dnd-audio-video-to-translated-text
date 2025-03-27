@@ -194,4 +194,22 @@ export const updateTranslations = mutation({
 
     return { success: true };
   },
+});
+
+/**
+ * Check if a user has access to a media file
+ */
+export const userHasAccess = query({
+  args: {
+    mediaId: v.id("media"),
+    userId: v.string(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const media = await ctx.db.get(args.mediaId);
+    if (!media) {
+      return false;
+    }
+    return media.userId === args.userId;
+  },
 }); 

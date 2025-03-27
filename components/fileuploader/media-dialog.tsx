@@ -240,7 +240,6 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
                 <h3 className="text-lg font-medium mb-4">Translation</h3>
                 <TranslationPanel
                   mediaId={media._id}
-                  sourceText={media.transcriptionText}
                   detectedLanguage={media.detectedLanguage}
                   translations={media.translations}
                 />

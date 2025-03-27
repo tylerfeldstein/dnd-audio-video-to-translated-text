@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Id } from "@/convex/_generated/dataModel";
+import { requestTranslation } from "@/app/actions/translation";
 
 interface Translation {
   targetLanguage: string;
@@ -14,7 +16,6 @@ interface Translation {
 
 interface TranslationPanelProps {
   mediaId: Id<"media">;
-  sourceText: string;
   detectedLanguage?: string;
   translations?: Translation[];
 }
@@ -25,7 +26,8 @@ const SUPPORTED_LANGUAGES = [
   { code: "pt", name: "Portuguese" },
 ];
 
-export function TranslationPanel({ mediaId, sourceText, detectedLanguage, translations = [] }: TranslationPanelProps) {
+export function TranslationPanel({ mediaId, detectedLanguage, translations = [] }: TranslationPanelProps) {
+  const { user } = useUser();
   const [selectedLanguage, setSelectedLanguage] = useState<string>("");
   const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,32 +36,17 @@ export function TranslationPanel({ mediaId, sourceText, detectedLanguage, transl
   const currentTranslation = translations.find(t => t.targetLanguage === selectedLanguage);
 
   const handleTranslate = async () => {
-    if (!selectedLanguage || !detectedLanguage) return;
+    if (!selectedLanguage || !user) return;
 
     setIsTranslating(true);
     setError(null);
 
     try {
-      // Send translation request to Inngest
-      const response = await fetch("/api/inngest", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: "translation.requested",
-          data: {
-            mediaId,
-            sourceText,
-            sourceLanguage: detectedLanguage,
-            targetLanguage: selectedLanguage,
-          },
-        }),
+      await requestTranslation({
+        mediaId,
+        targetLanguage: selectedLanguage,
+        userId: user.id
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to start translation");
-      }
     } catch (err) {
       setError("Failed to start translation. Please try again.");
       console.error("Translation error:", err);
@@ -98,7 +85,7 @@ export function TranslationPanel({ mediaId, sourceText, detectedLanguage, transl
         </div>
         <Button
           onClick={handleTranslate}
-          disabled={!selectedLanguage || isTranslating || selectedLanguage === detectedLanguage}
+          disabled={!selectedLanguage || isTranslating || selectedLanguage === detectedLanguage || !user}
         >
           {isTranslating ? "Translating..." : "Translate"}
         </Button>

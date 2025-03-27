@@ -8,7 +8,7 @@ import {
   mediaTranscriptionWorkflow,
   pythonTranscriptionFallback
 } from "@/inngest/functions/transcribe";
-import { translateTextWorkflow } from "@/inngest/functions/translate";
+import { translateTextWorkflow } from "@/inngest/functions/translate/translate";
 
 // The standard export approach that handles empty bodies automatically
 export const { GET, POST, PUT } = serve({

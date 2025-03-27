@@ -15,7 +15,6 @@ import type {
 } from "convex/server";
 import type * as files from "../files.js";
 import type * as media from "../media.js";
-import type * as utils_translations from "../utils/translations.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -28,7 +27,6 @@ import type * as utils_translations from "../utils/translations.js";
 declare const fullApi: ApiFromModules<{
   files: typeof files;
   media: typeof media;
-  "utils/translations": typeof utils_translations;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
