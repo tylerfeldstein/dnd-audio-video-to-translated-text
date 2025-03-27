@@ -48,20 +48,32 @@ export async function uploadFileToConvex(formData: FormData) {
     // Get the storage ID from the response
     const { storageId } = await result.json();
 
-    // Save the PDF to the pdfs table
-    const pdfId = await convex.mutation(api.files.savePdf, {
-      name: file.name,
+    // Save the receipt to the receipts table
+    const receiptId = await convex.mutation(api.files.saveReceipt, {
+      userId,
+      fileName: file.name,
+      fileDisplayName: getDisplayName(file.name),
       fileId: storageId,
       size: file.size,
       mimeType: file.type,
-      description: getDisplayName(file.name), // Use the display name as a description
-      userId, // Add the userId to the PDF record
+      status: 'pending',
+      items: [], // Empty array for items initially
     });
+
+    // Trigger the LLM processing action
+    try {
+      await convex.action(api.files.processReceiptWithLLM, {
+        receiptId,
+      });
+    } catch (processingError) {
+      console.error("Error starting receipt processing:", processingError);
+      // Continue even if processing fails to start
+    }
 
     return {
       success: true,
-      pdfId,
-      message: "File uploaded successfully",
+      receiptId,
+      message: "File uploaded and processing started",
     };
   } catch (error) {
     // Silently handle error in production, could use a logger service instead

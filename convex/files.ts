@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-
-import { mutation, query } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 
 /**
  * Generate a URL for uploading a file to Convex storage.
@@ -168,6 +168,55 @@ export const processReceipt = mutation({
 });
 
 /**
+ * Update receipt details with extracted data from OCR processing
+ */
+export const updateReceiptDetails = mutation({
+  args: {
+    receiptId: v.id("receipts"),
+    fileDisplayName: v.optional(v.string()),
+    merchantName: v.string(),
+    merchantAddress: v.string(),
+    merchantContact: v.string(),
+    transactionDate: v.string(),
+    transactionAmount: v.number(),
+    currency: v.string(),
+    receiptSummary: v.string(),
+    items: v.array(
+      v.object({
+        name: v.string(),
+        quantity: v.number(),
+        unitPrice: v.number(),
+        totalPrice: v.number(),
+      })
+    ),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const receipt = await ctx.db.get(args.receiptId);
+
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+
+    // Update the receipt with the extracted data
+    await ctx.db.patch(args.receiptId, {
+      fileDisplayName: args.fileDisplayName,
+      merchantName: args.merchantName,
+      merchantAddress: args.merchantAddress,
+      merchantContact: args.merchantContact,
+      transactionDate: args.transactionDate,
+      transactionAmount: args.transactionAmount,
+      currency: args.currency,
+      receiptSummary: args.receiptSummary,
+      items: args.items,
+      status: "processed", // Ensure the status is updated
+    });
+
+    return null;
+  },
+});
+
+/**
  * Get all receipts for a user.
  */
 export const getReceiptsByUser = query({
@@ -221,5 +270,121 @@ export const getReceiptsByUser = query({
         };
       })
     );
+  },
+});
+
+/**
+ * Process a receipt using LLM (LLaMA 3.2 via LM Studio)
+ * Trigger the Inngest function to extract PDF data
+ */
+export const processReceiptWithLLM = action({
+  args: {
+    receiptId: v.id("receipts"),
+  },
+  handler: async (ctx, args) => {
+    // Get the receipt document
+    const receipt = await ctx.runQuery(api.files.getReceiptById, {
+      receiptId: args.receiptId,
+    });
+
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+
+    // Get storage URL for the PDF
+    const fileUrl = receipt.fileUrl;
+    
+    if (!fileUrl) {
+      throw new Error("File URL not available");
+    }
+
+    // Update receipt status to processing
+    await ctx.runMutation(api.files.updateReceiptStatus, {
+      receiptId: args.receiptId,
+      status: "processing",
+    });
+
+    // Call the Inngest function to process the PDF
+    // The fetch call sends the event to Inngest which will trigger our agent
+    try {
+      const inngestUrl = process.env.INNGEST_EVENT_URL || "http://127.0.0.1:8288/e/";
+      const response = await fetch(inngestUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "extract-data-from-pdf-and-save-to-db",
+          data: {
+            url: fileUrl,
+            receiptId: args.receiptId,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to trigger PDF processing: ${response.statusText}`);
+      }
+
+      return { success: true, message: "PDF processing started" };
+    } catch (error) {
+      // Update receipt status to error
+      await ctx.runMutation(api.files.updateReceiptStatus, {
+        receiptId: args.receiptId,
+        status: "error",
+      });
+      
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  },
+});
+
+/**
+ * Get a receipt by ID
+ */
+export const getReceiptById = query({
+  args: {
+    receiptId: v.id("receipts"),
+  },
+  handler: async (ctx, args) => {
+    const receipt = await ctx.db.get(args.receiptId);
+    
+    if (!receipt) {
+      return null;
+    }
+    
+    // Get the fileUrl for display
+    const fileUrl = receipt.fileId ? await ctx.storage.getUrl(receipt.fileId) : null;
+    
+    return {
+      ...receipt,
+      fileUrl: fileUrl || undefined,
+    };
+  },
+});
+
+/**
+ * Update receipt status
+ */
+export const updateReceiptStatus = mutation({
+  args: {
+    receiptId: v.id("receipts"),
+    status: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const receipt = await ctx.db.get(args.receiptId);
+    
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+    
+    await ctx.db.patch(args.receiptId, {
+      status: args.status,
+    });
+    
+    return null;
   },
 });

@@ -110,12 +110,12 @@ export const FileUploader = ({
             success: true,
             message:
               uploadedFiles.length > 1
-                ? `Successfully uploaded ${uploadedFiles.length} files`
-                : "File uploaded successfully",
+                ? `Successfully uploaded ${uploadedFiles.length} files and started processing`
+                : "File uploaded successfully and processing started",
             uploadedFiles,
           });
 
-          // Refresh the receipt list
+          // Refresh the receipt list after a short delay
           window.setTimeout(() => {
             window.location.reload();
           }, 2000);

@@ -1,12 +1,14 @@
 import { serve } from "inngest/next";
 
-import { inngest } from "../../../inngest/client";
+import { inngest } from "@/inngest/client";
 
 import { helloWorld } from "@/inngest/functions/functions";
+import { extractAndSavePDF } from "@/inngest/functions/converterBot/supervisor";
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
   functions: [
-    helloWorld, // <-- This is where you'll always add all your functions
+    helloWorld,
+    extractAndSavePDF,
   ],
 });
