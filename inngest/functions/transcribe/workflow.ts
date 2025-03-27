@@ -11,6 +11,43 @@ import path from "path";
 const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 /**
+ * Cleans up files in the outputs directory related to a specific media/audio file
+ * This helps prevent accumulation of duplicate files
+ */
+async function cleanupOutputsDirectory(filePaths: string[]) {
+  try {
+    console.log("Cleaning up files in outputs directory...");
+    
+    for (const filePath of filePaths) {
+      if (fs.existsSync(filePath)) {
+        // Get the file's basename and directory
+        const fileDir = path.dirname(filePath);
+        const baseName = path.basename(filePath, path.extname(filePath));
+        
+        // Find all files in the directory with the same basename (different extensions)
+        const allFiles = fs.readdirSync(fileDir);
+        const relatedFiles = allFiles.filter(file => file.includes(baseName));
+        
+        // Delete all related files
+        for (const file of relatedFiles) {
+          const fullPath = path.join(fileDir, file);
+          try {
+            fs.unlinkSync(fullPath);
+            console.log(`Deleted file: ${fullPath}`);
+          } catch (error) {
+            console.error(`Failed to delete file ${fullPath}:`, error);
+          }
+        }
+      }
+    }
+    
+    console.log("Cleanup completed");
+  } catch (error) {
+    console.error("Error during file cleanup:", error);
+  }
+}
+
+/**
  * Extracts audio from a video file using ffmpeg
  * @param videoPath Path to the video file
  * @returns Path to the extracted audio file (.mp3)
@@ -69,12 +106,48 @@ function isVideoFile(filePath: string): boolean {
 
 // Event triggered when a new media file is uploaded
 export const mediaTranscriptionWorkflow = inngest.createFunction(
-  { id: "media-transcription-workflow" },
+  { 
+    id: "media-transcription-workflow",
+    retries: 2, // Limit retries to 2 attempts
+    onFailure: async ({ error, step, event }) => {
+      console.error(`Transcription workflow failed:`, error);
+      
+      // Cast the event data to our expected type
+      const typedEvent = event as unknown as { data: { mediaId: Id<"media">; storageId: Id<"_storage"> } };
+      const { mediaId } = typedEvent.data;
+      
+      if (!mediaId) {
+        console.error("Missing mediaId in event data for error handling");
+        return;
+      }
+      
+      // Update the status to error in the database
+      await step.run("update-status-to-error", async () => {
+        return await convexClient.mutation(api.media.updateTranscription, {
+          mediaId: mediaId as Id<"media">,
+          status: "error",
+          errorMessage: error instanceof Error ? error.message : "Unknown error"
+        });
+      });
+      
+      // Clean up any files in the outputs directory
+      await step.run("cleanup-files", async () => {
+        const outputDir = path.join(process.cwd(), "outputs");
+        if (fs.existsSync(outputDir)) {
+          // Get all files in the outputs directory
+          const files = fs.readdirSync(outputDir).map(file => path.join(outputDir, file));
+          await cleanupOutputsDirectory(files);
+        }
+      });
+    }
+  },
   // This function triggers when a new media file is uploaded
   { event: "media/file.uploaded" },
   async ({ event, step }) => {
     // Extract data from the event
     const { mediaId, storageId } = event.data;
+    // Track files that need to be cleaned up
+    const filesToCleanup: string[] = [];
 
     if (!mediaId || !storageId) {
       return { 
@@ -133,6 +206,7 @@ export const mediaTranscriptionWorkflow = inngest.createFunction(
         fs.writeFileSync(tempFilePath, Buffer.from(buffer));
         
         console.log("File downloaded successfully, size:", buffer.byteLength);
+        filesToCleanup.push(tempFilePath);
         return tempFilePath;
       });
 
@@ -140,7 +214,9 @@ export const mediaTranscriptionWorkflow = inngest.createFunction(
       const audioFilePath = await step.run("prepare-audio-file", async () => {
         if (isVideoFile(tempFilePath)) {
           console.log("File is a video, extracting audio...");
-          return await extractAudioFromVideo(tempFilePath);
+          const extractedPath = await extractAudioFromVideo(tempFilePath);
+          filesToCleanup.push(extractedPath);
+          return extractedPath;
         } else {
           console.log("File is already audio, skipping extraction");
           return tempFilePath;
@@ -230,6 +306,7 @@ export const mediaTranscriptionWorkflow = inngest.createFunction(
                   if (possibleMatch) {
                     console.log("Found possible matching output file:", possibleMatch);
                     const actualPath = path.join(outputDir, possibleMatch);
+                    filesToCleanup.push(actualPath);
                     const transcription = fs.readFileSync(actualPath, "utf-8");
                     resolve(transcription.trim());
                     return;
@@ -238,6 +315,9 @@ export const mediaTranscriptionWorkflow = inngest.createFunction(
                   reject(new Error(`Output file not found: ${outputPath}`));
                   return;
                 }
+                
+                // Add output file to cleanup list
+                filesToCleanup.push(outputPath);
                 
                 // Read the transcription output
                 console.log("Reading transcription from:", outputPath);
@@ -293,6 +373,9 @@ print(result["text"])
           fs.writeFileSync(scriptPath, pythonScript);
           console.log("Python script created");
           
+          // Add Python script to cleanup list
+          filesToCleanup.push(scriptPath);
+          
           return new Promise<string>((resolve, reject) => {
             try {
               console.log("Spawning Python process with command:", "python3", [scriptPath]);
@@ -328,6 +411,15 @@ print(result["text"])
                 fs.writeFileSync(stdoutPath, stdoutData);
                 console.log("Python stdout saved to:", stdoutPath);
                 
+                // Add stdout file to cleanup list
+                filesToCleanup.push(stdoutPath);
+                
+                // Add .txt output file that the Python script creates
+                const txtOutputPath = `${audioFilePath}.txt`;
+                if (fs.existsSync(txtOutputPath)) {
+                  filesToCleanup.push(txtOutputPath);
+                }
+                
                 try {
                   // Extract just the transcription from the output (excluding debug logs)
                   const transcription = stdoutData
@@ -345,8 +437,8 @@ print(result["text"])
                   console.error("Error extracting transcription from Python output:", error);
                   reject(error);
                 } finally {
-                  // No cleanup - we're preserving files for debugging
-                  console.log("Files preserved in outputs directory for debugging");
+                  // Now we're cleaning up files after processing
+                  console.log("Files marked for cleanup");
                 }
               });
             } catch (error) {
@@ -356,9 +448,8 @@ print(result["text"])
           });
         });
       } finally {
-        // We're now keeping files in the outputs directory for debugging
-        // Don't delete the temp file
-        console.log("Files preserved in outputs directory for debugging");
+        // Changed from keeping files to cleaning them up after successful processing
+        console.log("Cleaning up files after processing");
       }
 
       // If we got a transcription result, save it
@@ -385,6 +476,11 @@ print(result["text"])
           // Don't throw here - we at least have the transcription result in memory
         }
 
+        // Clean up files after successful transcription
+        await step.run("cleanup-files", async () => {
+          await cleanupOutputsDirectory(filesToCleanup);
+        });
+
         return { 
           success: true, 
           mediaId, 
@@ -404,6 +500,13 @@ print(result["text"])
         errorMessage: error instanceof Error ? error.message : "Unknown error"
       });
       
+      // Clean up files even if there was an error
+      try {
+        await cleanupOutputsDirectory(filesToCleanup);
+      } catch (cleanupError) {
+        console.error("Error during cleanup after failure:", cleanupError);
+      }
+      
       return { 
         success: false, 
         error: error instanceof Error ? error.message : "Unknown error"
@@ -414,11 +517,47 @@ print(result["text"])
 
 // Fallback function that uses a Python script if the whisper command is not available
 export const pythonTranscriptionFallback = inngest.createFunction(
-  { id: "python-transcription-fallback" },
+  { 
+    id: "python-transcription-fallback",
+    retries: 2, // Limit retries to 2 attempts
+    onFailure: async ({ error, step, event }) => {
+      console.error(`Python transcription fallback failed:`, error);
+      
+      // Cast the event data to our expected type
+      const typedEvent = event as unknown as { data: { mediaId: Id<"media">; storageId: Id<"_storage">; tempFilePath: string } };
+      const { mediaId } = typedEvent.data;
+      
+      if (!mediaId) {
+        console.error("Missing mediaId in event data for error handling");
+        return;
+      }
+      
+      // Update the status to error in the database
+      await step.run("update-status-to-error", async () => {
+        return await convexClient.mutation(api.media.updateTranscription, {
+          mediaId: mediaId as Id<"media">,
+          status: "error",
+          errorMessage: error instanceof Error ? error.message : "Unknown error"
+        });
+      });
+      
+      // Clean up any files in the outputs directory
+      await step.run("cleanup-files", async () => {
+        const outputDir = path.join(process.cwd(), "outputs");
+        if (fs.existsSync(outputDir)) {
+          // Get all files in the outputs directory
+          const files = fs.readdirSync(outputDir).map(file => path.join(outputDir, file));
+          await cleanupOutputsDirectory(files);
+        }
+      });
+    }
+  },
   { event: "media/transcription.fallback" },
   async ({ event, step }) => {
     // Extract data from the event
     const { mediaId, storageId, tempFilePath } = event.data;
+    // Track files that need to be cleaned up
+    const filesToCleanup: string[] = [];
 
     if (!mediaId || !storageId || !tempFilePath) {
       return { 
@@ -475,17 +614,21 @@ export const pythonTranscriptionFallback = inngest.createFunction(
           fs.writeFileSync(newFilePath, Buffer.from(buffer));
           
           console.log("File downloaded successfully, size:", buffer.byteLength);
+          filesToCleanup.push(newFilePath);
           return newFilePath;
         });
       } else {
         console.log("Using existing file at:", tempFilePath);
+        filesToCleanup.push(tempFilePath);
       }
       
       // Check if the file is a video and extract audio if needed
       const audioFilePath = await step.run("prepare-audio-file", async () => {
         if (isVideoFile(actualFilePath)) {
           console.log("File is a video, extracting audio...");
-          return await extractAudioFromVideo(actualFilePath);
+          const extractedPath = await extractAudioFromVideo(actualFilePath);
+          filesToCleanup.push(extractedPath);
+          return extractedPath;
         } else {
           console.log("File is already audio, skipping extraction");
           return actualFilePath;
@@ -524,6 +667,7 @@ print(result["text"])
         `;
         
         fs.writeFileSync(scriptPath, pythonScript);
+        filesToCleanup.push(scriptPath);
         return scriptPath;
       });
 
@@ -563,6 +707,15 @@ print(result["text"])
             fs.writeFileSync(stdoutPath, stdoutData);
             console.log("Python stdout saved to:", stdoutPath);
             
+            // Add stdout file to cleanup list
+            filesToCleanup.push(stdoutPath);
+            
+            // Add .txt output file that the Python script creates
+            const txtOutputPath = `${audioFilePath}.txt`;
+            if (fs.existsSync(txtOutputPath)) {
+              filesToCleanup.push(txtOutputPath);
+            }
+            
             try {
               // Extract just the transcription from the output (excluding debug logs)
               const transcription = stdoutData
@@ -580,8 +733,8 @@ print(result["text"])
               console.error("Error extracting transcription from Python output:", error);
               reject(error);
             } finally {
-              // No cleanup - we're preserving files for debugging
-              console.log("Files preserved in outputs directory for debugging");
+              // Now we're cleaning up files after processing
+              console.log("Files marked for cleanup");
             }
           });
         });
@@ -594,6 +747,11 @@ print(result["text"])
           status: "completed",
           transcriptionText: transcriptionResult
         });
+      });
+
+      // Clean up files after successful transcription
+      await step.run("cleanup-files", async () => {
+        await cleanupOutputsDirectory(filesToCleanup);
       });
 
       return { 
@@ -610,6 +768,13 @@ print(result["text"])
         status: "error",
         errorMessage: error instanceof Error ? error.message : "Unknown error"
       });
+      
+      // Clean up files even if there was an error
+      try {
+        await cleanupOutputsDirectory(filesToCleanup);
+      } catch (cleanupError) {
+        console.error("Error during cleanup after failure:", cleanupError);
+      }
       
       return { 
         success: false, 
