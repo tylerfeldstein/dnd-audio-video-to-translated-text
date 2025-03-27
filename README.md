@@ -98,3 +98,33 @@ docker-compose up -d --build
 ```
 
 The Api docs for the container are at `https://libretranslate.com/docs/#/translate/get_languages`
+
+## Grammer checker
+
+Pull container
+
+```sh
+docker pull erikvl87/languagetool
+```
+
+Run container
+
+```sh
+docker run --rm -p 8010:8010 erikvl87/languagetool
+```
+
+sample code
+
+```ts
+const response = await fetch("http://localhost:8010/v2/check", {
+  method: "POST",
+  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({
+    text: "Your text to be checked goes here.",
+    language: "en-US",
+  }),
+});
+
+const result = await response.json();
+console.log(result);
+```

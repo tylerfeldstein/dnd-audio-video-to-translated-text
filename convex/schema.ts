@@ -27,6 +27,8 @@ export default defineSchema({
       targetLanguage: v.string(), // Language code of the translation
       translatedText: v.string(), // The translated text
       translatedAt: v.number(), // Timestamp of translation
+      status: v.optional(v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("error"))),
+      error: v.optional(v.string())
     }))),
   }).index("by_userId", ["userId"]),
 

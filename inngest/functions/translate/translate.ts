@@ -13,6 +13,8 @@ interface Translation {
   targetLanguage: string;
   translatedText: string;
   translatedAt: number;
+  status?: "pending" | "processing" | "completed" | "error";
+  error?: string;
 }
 
 interface LibreTranslateResponse {
@@ -37,14 +39,32 @@ export const translateTextWorkflow = inngest.createFunction(
     id: "translate-text-workflow",
     retries: 3,
     concurrency: { limit: 10 },
-    onFailure: async ({ error, step }) => {
+    onFailure: async ({ error, step, event }) => {
       console.error(`Translation failed:`, error);
       
-      // Notify the user of the failure through your preferred method
-      // For now, we'll just log it
-      await step.run("log-failure", async () => {
-        console.error("Translation workflow failed:", {
-          error: error.message
+      // Double type assertion to handle the event data safely
+      const eventData = (event as unknown as { data: TranslationRequestEvent["data"] }).data;
+      
+      if (!eventData?.mediaId || !eventData?.targetLanguage) {
+        console.error("Missing required event data for error handling");
+        return;
+      }
+      
+      // Update translation status to error
+      await step.run("update-error-status", async () => {
+        const media = await convex.query(api.media.getMediaById, { mediaId: eventData.mediaId });
+        if (!media) return;
+
+        const existingTranslations = media.translations || [];
+        const updatedTranslations = existingTranslations.map((t: Translation) =>
+          t.targetLanguage === eventData.targetLanguage
+            ? { ...t, status: "error" as const, error: error.message }
+            : t
+        );
+
+        await convex.mutation(api.media.updateTranslations, {
+          mediaId: eventData.mediaId,
+          translations: updatedTranslations,
         });
       });
     }
@@ -53,14 +73,29 @@ export const translateTextWorkflow = inngest.createFunction(
   async ({ event, step }) => {
     const { mediaId, targetLanguage, requestingUserId } = event.data as TranslationRequestEvent["data"];
 
-    // Log the start of translation
-    await step.run("log-start", async () => {
-      console.log(`Starting translation for media ${mediaId}`);
-      console.log(`Requested by user: ${requestingUserId}`);
-      console.log(`To: ${targetLanguage}`);
+    // Set initial pending status
+    await step.run("set-pending-status", async () => {
+      const media = await convex.query(api.media.getMediaById, { mediaId });
+      if (!media) return;
+
+      const existingTranslations = media.translations || [];
+      const updatedTranslations = [
+        ...existingTranslations.filter(t => t.targetLanguage !== targetLanguage),
+        {
+          targetLanguage,
+          translatedText: "",
+          translatedAt: Date.now(),
+          status: "pending" as const
+        }
+      ];
+
+      await convex.mutation(api.media.updateTranslations, {
+        mediaId,
+        translations: updatedTranslations,
+      });
     });
 
-    // Get existing translations
+    // Get media and verify access
     const media = await step.run("fetch-media", async () => {
       return await convex.query(api.media.getMediaById, { mediaId });
     });
@@ -84,12 +119,25 @@ export const translateTextWorkflow = inngest.createFunction(
       }
     });
 
-    const existingTranslations = media.translations || [];
-    const filteredTranslations = existingTranslations.filter(
-      (t: Translation) => t.targetLanguage !== targetLanguage
-    );
+    // Update to processing status
+    await step.run("set-processing-status", async () => {
+      const currentMedia = await convex.query(api.media.getMediaById, { mediaId });
+      if (!currentMedia) return;
 
-    // Perform translation using LibreTranslate
+      const existingTranslations = currentMedia.translations || [];
+      const updatedTranslations = existingTranslations.map((t: Translation) =>
+        t.targetLanguage === targetLanguage
+          ? { ...t, status: "processing" as const }
+          : t
+      );
+
+      await convex.mutation(api.media.updateTranslations, {
+        mediaId,
+        translations: updatedTranslations,
+      });
+    });
+
+    // Perform translation
     const translatedText = await step.run("translate-text", async () => {
       const maxRetries = 3;
       let retryCount = 0;
@@ -128,7 +176,6 @@ export const translateTextWorkflow = inngest.createFunction(
         } catch (error) {
           console.error("Translation attempt failed:", error);
           if (retryCount === maxRetries - 1) {
-            console.error("Translation error:", error);
             throw new Error("Failed to translate text using LibreTranslate after multiple retries");
           }
           retryCount++;
@@ -142,16 +189,22 @@ export const translateTextWorkflow = inngest.createFunction(
       throw new Error("Translation failed: No translated text received");
     }
 
-    // Save the translation result back to Convex
+    // Save the completed translation
     await step.run("save-translation", async () => {
-      const updatedTranslations = [
-        ...filteredTranslations,
-        {
-          targetLanguage,
-          translatedText,
-          translatedAt: Date.now(),
-        },
-      ];
+      const currentMedia = await convex.query(api.media.getMediaById, { mediaId });
+      if (!currentMedia) return;
+
+      const existingTranslations = currentMedia.translations || [];
+      const updatedTranslations = existingTranslations.map((t: Translation) =>
+        t.targetLanguage === targetLanguage
+          ? {
+              targetLanguage,
+              translatedText,
+              translatedAt: Date.now(),
+              status: "completed" as const
+            }
+          : t
+      );
 
       await convex.mutation(api.media.updateTranslations, {
         mediaId,

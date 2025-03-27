@@ -73,6 +73,20 @@ export const getAllMedia = query({
       transcriptionStatus: v.optional(v.string()),
       transcriptionText: v.optional(v.string()),
       transcribedAt: v.optional(v.number()),
+      translations: v.optional(v.array(
+        v.object({
+          targetLanguage: v.string(),
+          translatedText: v.string(),
+          translatedAt: v.number(),
+          status: v.optional(v.union(
+            v.literal("pending"),
+            v.literal("processing"),
+            v.literal("completed"),
+            v.literal("error")
+          )),
+          error: v.optional(v.string())
+        })
+      )),
     })
   ),
   handler: async (ctx, args) => {
@@ -103,6 +117,38 @@ export const getMediaById = query({
   args: {
     mediaId: v.id("media"),
   },
+  returns: v.union(
+    v.object({
+      _id: v.id("media"),
+      _creationTime: v.number(),
+      name: v.string(),
+      fileId: v.id("_storage"),
+      size: v.number(),
+      mimeType: v.string(),
+      description: v.optional(v.string()),
+      fileUrl: v.optional(v.string()),
+      userId: v.string(),
+      duration: v.optional(v.number()),
+      transcriptionStatus: v.optional(v.string()),
+      transcriptionText: v.optional(v.string()),
+      transcribedAt: v.optional(v.number()),
+      translations: v.optional(v.array(
+        v.object({
+          targetLanguage: v.string(),
+          translatedText: v.string(),
+          translatedAt: v.number(),
+          status: v.optional(v.union(
+            v.literal("pending"),
+            v.literal("processing"),
+            v.literal("completed"),
+            v.literal("error")
+          )),
+          error: v.optional(v.string())
+        })
+      )),
+    }),
+    v.null()
+  ),
   handler: async (ctx, args) => {
     const media = await ctx.db.get(args.mediaId);
     
@@ -179,9 +225,19 @@ export const updateTranslations = mutation({
         targetLanguage: v.string(),
         translatedText: v.string(),
         translatedAt: v.number(),
+        status: v.optional(v.union(
+          v.literal("pending"),
+          v.literal("processing"),
+          v.literal("completed"),
+          v.literal("error")
+        )),
+        error: v.optional(v.string())
       })
     ),
   },
+  returns: v.object({
+    success: v.boolean()
+  }),
   handler: async (ctx, args) => {
     const media = await ctx.db.get(args.mediaId);
     if (!media) {

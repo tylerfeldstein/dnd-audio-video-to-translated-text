@@ -1,0 +1,9 @@
+{
+  "name": "transcribe-app-scripts",
+  "version": "1.0.0",
+  "description": "Scripts for the transcribe app",
+  "type": "module",
+  "scripts": {
+    "update-languages": "node update-languages.js"
+  }
+} 
