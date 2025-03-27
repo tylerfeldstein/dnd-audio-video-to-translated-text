@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import React from "react";
+import { MediaDialog } from "./media-dialog";
 
 // Initialize the Convex client
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -36,6 +37,8 @@ export const MediaList = ({ userId }: MediaListProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Fetch media files on component mount
   useEffect(() => {
@@ -54,12 +57,18 @@ export const MediaList = ({ userId }: MediaListProps) => {
 
     fetchMediaFiles();
 
-    // Set up an interval to refresh the list every 10 seconds
-    const intervalId = setInterval(fetchMediaFiles, 10000);
+    // Don't auto-refresh while dialog is open to prevent playback interruption
+    let intervalId: NodeJS.Timeout | undefined;
+    if (!isDialogOpen) {
+      // Set up an interval to refresh the list every 10 seconds only when dialog is closed
+      intervalId = setInterval(fetchMediaFiles, 10000);
+    }
 
     // Clean up interval on component unmount
-    return () => clearInterval(intervalId);
-  }, [userId]);
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [userId, isDialogOpen]); // Add isDialogOpen to the dependency array
 
   const toggleExpand = (id: string) => {
     const newExpandedIds = new Set(expandedIds);
@@ -69,6 +78,16 @@ export const MediaList = ({ userId }: MediaListProps) => {
       newExpandedIds.add(id);
     }
     setExpandedIds(newExpandedIds);
+  };
+
+  const handleRowClick = (media: Media) => {
+    setSelectedMedia(media);
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setSelectedMedia(null);
   };
 
   if (isLoading) {
@@ -128,198 +147,213 @@ export const MediaList = ({ userId }: MediaListProps) => {
   };
 
   return (
-    <Card className="w-full mx-auto">
-      <div className="p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Your Media Files</h2>
-        </div>
-        <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-            <div className="overflow-hidden border border-gray-200 dark:border-gray-700 sm:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th
-                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      scope="col"
-                    >
-                      Name
-                    </th>
-                    <th
-                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      scope="col"
-                    >
-                      Type
-                    </th>
-                    <th
-                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      scope="col"
-                    >
-                      Uploaded
-                    </th>
-                    <th
-                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      scope="col"
-                    >
-                      Size
-                    </th>
-                    <th
-                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      scope="col"
-                    >
-                      Transcription
-                    </th>
-                    <th
-                      className="px-6 py-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      scope="col"
-                    >
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                  {mediaFiles.map((media) => (
-                    <React.Fragment key={media._id.toString()}>
-                      <tr
-                        className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+    <>
+      <Card className="w-full mx-auto">
+        <div className="p-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Your Media Files</h2>
+          </div>
+          <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8">
+            <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+              <div className="overflow-hidden border border-gray-200 dark:border-gray-700 sm:rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                      <th
+                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                        scope="col"
                       >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            <div className="w-6 h-6 text-blue-500">
-                              {media.mimeType.includes('audio') ? (
-                                <svg 
-                                  xmlns="http://www.w3.org/2000/svg" 
-                                  width="24" 
-                                  height="24" 
-                                  viewBox="0 0 24 24" 
-                                  fill="none" 
-                                  stroke="currentColor" 
-                                  strokeWidth="2" 
-                                  strokeLinecap="round" 
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="m14.5 2-6 6H3v8h5.5l6 6V2Z"/>
-                                  <path d="M20 10c0 5-7 5-7 0"/>
-                                </svg>
-                              ) : (
-                                <svg 
-                                  xmlns="http://www.w3.org/2000/svg" 
-                                  width="24" 
-                                  height="24" 
-                                  viewBox="0 0 24 24" 
-                                  fill="none" 
-                                  stroke="currentColor" 
-                                  strokeWidth="2" 
-                                  strokeLinecap="round" 
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M12 2c-4.4 0-8 3.6-8 8v10c0 .6.4 1 1 1h5v-5h4v5h5c.6 0 1-.4 1-1V10c0-4.4-3.6-8-8-8z"/>
-                                  <path d="M10 18v-5h4v5"/>
-                                </svg>
-                              )}
+                        Name
+                      </th>
+                      <th
+                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                        scope="col"
+                      >
+                        Type
+                      </th>
+                      <th
+                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                        scope="col"
+                      >
+                        Uploaded
+                      </th>
+                      <th
+                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                        scope="col"
+                      >
+                        Size
+                      </th>
+                      <th
+                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                        scope="col"
+                      >
+                        Transcription
+                      </th>
+                      <th
+                        className="px-6 py-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                        scope="col"
+                      >
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                    {mediaFiles.map((media) => (
+                      <React.Fragment key={media._id.toString()}>
+                        <tr
+                          className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                          onClick={() => handleRowClick(media)}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div className="w-6 h-6 text-blue-500">
+                                {media.mimeType.includes('audio') ? (
+                                  <svg 
+                                    xmlns="http://www.w3.org/2000/svg" 
+                                    width="24" 
+                                    height="24" 
+                                    viewBox="0 0 24 24" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    strokeWidth="2" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="m14.5 2-6 6H3v8h5.5l6 6V2Z"/>
+                                    <path d="M20 10c0 5-7 5-7 0"/>
+                                  </svg>
+                                ) : (
+                                  <svg 
+                                    xmlns="http://www.w3.org/2000/svg" 
+                                    width="24" 
+                                    height="24" 
+                                    viewBox="0 0 24 24" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    strokeWidth="2" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M12 2c-4.4 0-8 3.6-8 8v10c0 .6.4 1 1 1h5v-5h4v5h5c.6 0 1-.4 1-1V10c0-4.4-3.6-8-8-8z"/>
+                                    <path d="M10 18v-5h4v5"/>
+                                  </svg>
+                                )}
+                              </div>
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {media.name}
+                              </span>
                             </div>
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {media.name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              {media.mimeType.split('/')[0]}
                             </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {media.mimeType.split('/')[0]}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {formatDate(media._creationTime)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {formatFileSize(media.size)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(media.transcriptionStatus)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="flex justify-end space-x-2">
-                            {media.fileUrl && (
-                              <button
-                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-                                onClick={() => window.open(media.fileUrl, "_blank")}
-                                title="Play/Download Media"
-                              >
-                                <svg
-                                  className="w-5 h-5"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <polygon points="5 3 19 12 5 21 5 3" />
-                                </svg>
-                              </button>
-                            )}
-                            {media.transcriptionStatus === "completed" && (
-                              <button
-                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-                                onClick={() => toggleExpand(media._id.toString())}
-                                title="View Transcription"
-                              >
-                                <svg
-                                  className="w-5 h-5"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                </svg>
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                      {expandedIds.has(media._id.toString()) && media.transcriptionText && (
-                        <tr>
-                          <td colSpan={6} className="px-6 py-4 bg-gray-50 dark:bg-gray-800">
-                            <div className="p-4 bg-white dark:bg-gray-900 rounded shadow border border-gray-200 dark:border-gray-700">
-                              <h3 className="text-lg font-semibold mb-2">Transcription</h3>
-                              <div className="max-h-60 overflow-y-auto prose dark:prose-invert">
-                                <p className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
-                                  {media.transcriptionText}
-                                </p>
-                              </div>
-                              <div className="flex justify-end mt-4">
-                                <button 
-                                  className="px-3 py-1 text-xs text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                                  onClick={() => {
-                                    if (media.transcriptionText) {
-                                      navigator.clipboard.writeText(media.transcriptionText);
-                                    }
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              {formatDate(media._creationTime)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              {formatFileSize(media.size)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {getStatusBadge(media.transcriptionStatus)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="flex justify-end space-x-2">
+                              {media.fileUrl && (
+                                <button
+                                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(media.fileUrl, "_blank");
                                   }}
+                                  title="Play/Download Media"
                                 >
-                                  Copy to Clipboard
+                                  <svg
+                                    className="w-5 h-5"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <polygon points="5 3 19 12 5 21 5 3" />
+                                  </svg>
                                 </button>
-                              </div>
+                              )}
+                              {media.transcriptionStatus === "completed" && (
+                                <button
+                                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleExpand(media._id.toString());
+                                  }}
+                                  title="View Transcription"
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                  </svg>
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
+                        {expandedIds.has(media._id.toString()) && media.transcriptionText && (
+                          <tr onClick={(e) => e.stopPropagation()}>
+                            <td colSpan={6} className="px-6 py-4 bg-gray-50 dark:bg-gray-800">
+                              <div className="p-4 bg-white dark:bg-gray-900 rounded shadow border border-gray-200 dark:border-gray-700">
+                                <h3 className="text-lg font-semibold mb-2">Transcription</h3>
+                                <div className="max-h-60 overflow-y-auto prose dark:prose-invert">
+                                  <p className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+                                    {media.transcriptionText}
+                                  </p>
+                                </div>
+                                <div className="flex justify-end mt-4">
+                                  <button 
+                                    className="px-3 py-1 text-xs text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                    onClick={() => {
+                                      if (media.transcriptionText) {
+                                        navigator.clipboard.writeText(media.transcriptionText);
+                                      }
+                                    }}
+                                  >
+                                    Copy to Clipboard
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+
+      <MediaDialog 
+        media={selectedMedia} 
+        isOpen={isDialogOpen} 
+        onClose={handleCloseDialog} 
+      />
+    </>
   );
 }; 
