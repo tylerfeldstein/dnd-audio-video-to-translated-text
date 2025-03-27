@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Id } from "@/convex/_generated/dataModel";
 import { requestTranslation } from "@/app/actions/translation";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Loader2 } from "lucide-react";
 
 interface Translation {
   targetLanguage: string;
@@ -26,11 +29,15 @@ const SUPPORTED_LANGUAGES = [
   { code: "pt", name: "Portuguese" },
 ];
 
-export function TranslationPanel({ mediaId, detectedLanguage, translations = [] }: TranslationPanelProps) {
+export function TranslationPanel({ mediaId, detectedLanguage }: TranslationPanelProps) {
   const { user } = useUser();
   const [selectedLanguage, setSelectedLanguage] = useState<string>("");
   const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Subscribe to media updates to get real-time translation updates
+  const media = useQuery(api.media.getMediaById, { mediaId });
+  const translations = media?.translations || [];
 
   // Find existing translation for selected language
   const currentTranslation = translations.find(t => t.targetLanguage === selectedLanguage);
@@ -87,7 +94,14 @@ export function TranslationPanel({ mediaId, detectedLanguage, translations = [] 
           onClick={handleTranslate}
           disabled={!selectedLanguage || isTranslating || selectedLanguage === detectedLanguage || !user}
         >
-          {isTranslating ? "Translating..." : "Translate"}
+          {isTranslating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Translating...
+            </>
+          ) : (
+            "Translate"
+          )}
         </Button>
       </div>
 
