@@ -113,10 +113,14 @@ const saveToDatabaseTool = createTool({
             merchantAddress: receiptData.merchant.address,
             merchantContact: receiptData.merchant.contact,
             transactionDate: receiptData.transaction.date,
+            receiptNumber: receiptData.transaction.receipt_number,
+            paymentMethod: receiptData.transaction.payment_method,
+            items: formattedItems,
+            subtotal: receiptData.totals.subtotal,
+            tax: receiptData.totals.tax,
             transactionAmount: receiptData.totals.total,
             currency: receiptData.totals.currency,
             receiptSummary,
-            items: formattedItems
           });
 
           return {
@@ -125,9 +129,10 @@ const saveToDatabaseTool = createTool({
             message: "Receipt details updated successfully"
           };
         } catch (error) {
+          console.error("Error saving receipt to database:", error);
           return {
             addedToDb: "Failed",
-            error: error instanceof Error ? error.message : "Unknown Error",
+            error: error instanceof Error ? error.message : "Unknown Error saving to DB",
           };
         } 
       },
@@ -148,7 +153,7 @@ export const databaseAgent = createAgent({
   name: "Database Agent",
   description: "Handles convex database operations and data storage",
   system:
-    "You are a specialized agent that handles database operations and data storage. You receive structured receipt data and save it to the Convex database using the correct schema.",
+    "You are a specialized agent that handles database operations and data storage. You receive structured receipt data and save it to the Convex database using the correct schema via the 'save-to-database' tool.",
   model: createModel(),
   tools: [saveToDatabaseTool],
 }); 

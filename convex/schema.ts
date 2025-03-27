@@ -11,22 +11,39 @@ export default defineSchema({
     userId: v.string(),
   }).index("by_userId", ["userId"]),
 
+  media: defineTable({
+    name: v.string(),
+    fileId: v.id("_storage"),
+    size: v.number(),
+    mimeType: v.string(),
+    description: v.optional(v.string()),
+    userId: v.string(),
+    duration: v.optional(v.number()),
+    transcriptionStatus: v.optional(v.string()), // "pending", "processing", "completed", "error"
+    transcriptionText: v.optional(v.string()),
+    transcribedAt: v.optional(v.number()),
+  }).index("by_userId", ["userId"]),
+
   receipts: defineTable({
     userId: v.string(), // Clerk user ID
     fileName: v.string(),
     fileDisplayName: v.optional(v.string()),
     fileId: v.id("_storage"),
-    uploadedAt: v.number(),
+    uploadedAt: v.number(), // Timestamp of upload saving
     size: v.number(),
     mimeType: v.string(),
-    status: v.string(), // 'pending', 'processed', 'error'
+    status: v.string(), // 'pending', 'processing', 'processed', 'error'
 
     // Fields for extracted data
     merchantName: v.optional(v.string()),
     merchantAddress: v.optional(v.string()),
     merchantContact: v.optional(v.string()),
     transactionDate: v.optional(v.string()),
-    transactionAmount: v.optional(v.number()),
+    receiptNumber: v.optional(v.string()), // Added field
+    paymentMethod: v.optional(v.string()), // Added field
+    transactionAmount: v.optional(v.number()), // This is the 'total'
+    subtotal: v.optional(v.number()), // Added field
+    tax: v.optional(v.number()), // Added field
     currency: v.optional(v.string()),
     receiptSummary: v.optional(v.string()),
     items: v.array(
@@ -38,4 +55,22 @@ export default defineSchema({
       })
     ),
   }).index("by_userId", ["userId"]),
+  
+  // Table to track multipart uploads
+  multipartUploads: defineTable({
+    uploadId: v.string(),
+    numChunks: v.number(),
+    uploadedChunks: v.number(),
+    isComplete: v.boolean(),
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+  }).index("by_uploadId", ["uploadId"]),
+  
+  // Table to track individual chunks in a multipart upload
+  multipartChunks: defineTable({
+    uploadId: v.string(),
+    chunkIndex: v.number(),
+    chunkKey: v.string(), // This will be the storage ID for this chunk
+    uploadedAt: v.number(),
+  }).index("by_uploadId", ["uploadId"]),
 });

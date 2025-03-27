@@ -1,23 +1,36 @@
 import { createModel } from "@/inngest/customModel";
 import { createAgent, createTool } from "@inngest/agent-kit";
 import { z } from "zod";
+// Use dynamic import for pdf-parse in the handler
 
 const parsePdfTool = createTool({
-    name: "parse-pdf",
-    description: "Analyzes the given PDF and extracts receipt information",
-    parameters: z.object({
-        pdfUrl: z.string(),
-    }),
-    handler: async ({ pdfUrl }, { step }) => {
-        try {
-            // Use the step.ai.infer to process the PDF with the local LLM
-            return await step?.ai.infer("parse-pdf", {
-                model: createModel(), // Use our custom model that supports LMStudio
-                body: {
-                    messages: [
-                        {
-                            role: "user",
-                            content: `Extract the data from the receipt and return the structured output as follows:
+  name: "parse-pdf",
+  description: "Analyzes the given PDF and extracts receipt information",
+  parameters: z.object({
+    pdfUrl: z.string(),
+  }),
+  handler: async ({ pdfUrl }, { step }) => {
+    try {
+      // Use dynamic import for pdf-parse
+      const response = await fetch(pdfUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+      }
+      
+      const pdfBuffer = Buffer.from(await response.arrayBuffer());
+      
+      // Dynamically import pdf-parse to avoid initialization issues
+      const pdfParse = await import('pdf-parse').then(module => module.default);
+      const data = await pdfParse(pdfBuffer);
+      
+      // Use the step.ai.infer to process the PDF with the local LLM
+      return await step?.ai.infer("parse-pdf", {
+        model: createModel(), // Use our custom model that supports LMStudio
+        body: {
+          messages: [
+            {
+              role: "user",
+              content: `Extract the data from the receipt and return the structured output as follows:
 {
   "merchant": {
     "name": "Store Name",
@@ -45,21 +58,22 @@ const parsePdfTool = createTool({
   }
 }
 
-Please analyze the PDF at this URL: ${pdfUrl}`
-                        }
-                    ]
-                },
-            });
-        } catch (error) {
-            console.error("Error processing PDF:", error);
-            return {
-                error: "Failed to process PDF",
-                details: error instanceof Error ? error.message : String(error)
-            };
-        }
-    },
+Please analyze the PDF at this URL: ${pdfUrl}`,
+            },
+          ],
+        },
+      });
+    } catch (error) {
+      console.error("Error processing PDF:", error);
+      return {
+        error: "Failed to process PDF",
+        details: error instanceof Error ? error.message : String(error),
+      };
+    }
+  },
 });
 
+// Define your receipt scanning agent
 export const receiptScanningAgent = createAgent({
   name: "Receipt Scanning Agent",
   description:

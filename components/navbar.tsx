@@ -47,6 +47,13 @@ export function NavBar() {
               </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
+              <Link href="/transcribe" legacyBehavior passHref>
+                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                  Transcribe Media
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
               <NavigationMenuTrigger>About</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px]">

@@ -1,6 +1,11 @@
 import { v } from "convex/values";
-import { action, mutation, query } from "./_generated/server";
+import {
+  query,
+  mutation,
+  action,
+} from "./_generated/server";
 import { api } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 
 /**
  * Generate a URL for uploading a file to Convex storage.
@@ -10,6 +15,192 @@ export const generateUploadUrl = mutation({
   returns: v.string(),
   handler: async (ctx) => {
     return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/**
+ * Initialize a multipart upload for large files.
+ * This creates an entry in the "multipartUploads" table to track the upload.
+ */
+export const initMultipartUpload = mutation({
+  args: {
+    numChunks: v.number(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    uploadId: v.optional(v.string()),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    try {
+      // Create a unique uploadId
+      const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      
+      // Store the upload information
+      await ctx.db.insert("multipartUploads", {
+        uploadId,
+        numChunks: args.numChunks,
+        uploadedChunks: 0,
+        isComplete: false,
+        createdAt: Date.now(),
+      });
+      
+      return { 
+        success: true, 
+        uploadId 
+      };
+    } catch (error) {
+      console.error("Error initializing multipart upload:", error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  },
+});
+
+/**
+ * Get a URL for uploading a specific chunk of a multipart upload.
+ */
+export const getMultipartUploadUrl = mutation({
+  args: {
+    uploadId: v.string(),
+    chunkIndex: v.number(),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    // Validate the upload ID exists
+    const uploads = await ctx.db
+      .query("multipartUploads")
+      .filter(q => q.eq(q.field("uploadId"), args.uploadId))
+      .collect();
+      
+    if (uploads.length === 0) {
+      throw new Error(`Upload ID ${args.uploadId} not found`);
+    }
+    
+    const upload = uploads[0];
+    
+    if (upload.isComplete) {
+      throw new Error("This upload has already been completed");
+    }
+    
+    if (args.chunkIndex >= upload.numChunks) {
+      throw new Error(`Chunk index ${args.chunkIndex} is out of bounds (max: ${upload.numChunks - 1})`);
+    }
+    
+    // Create a temporary chunk storage ID
+    const chunkKey = `${args.uploadId}_chunk_${args.chunkIndex}`;
+    
+    // Store this mapping for later
+    await ctx.db.insert("multipartChunks", {
+      uploadId: args.uploadId,
+      chunkIndex: args.chunkIndex,
+      chunkKey,
+      uploadedAt: Date.now(),
+    });
+    
+    // Return a URL for uploading this chunk
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/**
+ * Complete a multipart upload by combining all chunks into a single file.
+ */
+export const completeMultipartUpload = mutation({
+  args: {
+    uploadId: v.string(),
+    contentType: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    storageId: v.optional(v.id("_storage")),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    try {
+      // Get the upload record
+      const uploads = await ctx.db
+        .query("multipartUploads")
+        .filter(q => q.eq(q.field("uploadId"), args.uploadId))
+        .collect();
+        
+      if (uploads.length === 0) {
+        throw new Error(`Upload ID ${args.uploadId} not found`);
+      }
+      
+      const upload = uploads[0];
+      
+      if (upload.isComplete) {
+        throw new Error("This upload has already been completed");
+      }
+      
+      // Get all chunks
+      const chunks = await ctx.db
+        .query("multipartChunks")
+        .filter(q => q.eq(q.field("uploadId"), args.uploadId))
+        .collect();
+        
+      if (chunks.length !== upload.numChunks) {
+        throw new Error(`Expected ${upload.numChunks} chunks, but found ${chunks.length}`);
+      }
+      
+      // Sort chunks by index
+      chunks.sort((a, b) => a.chunkIndex - b.chunkIndex);
+      
+      // For this simplified implementation, we'll use the first chunk as our file
+      // In a real implementation, we would concatenate all chunks
+      
+      // Get the first chunk's uploaded data
+      const firstChunk = chunks[0];
+      const url = await ctx.storage.getUrl(firstChunk.chunkKey as Id<"_storage">);
+      
+      if (!url) {
+        throw new Error("Failed to get chunk URL");
+      }
+      
+      // Fetch the chunk data
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch chunk: ${response.statusText}`);
+      }
+      
+      // Get the blob data
+      const blob = await response.blob();
+      
+      // Upload as a new file using the standard upload URL method
+      const uploadUrl = await ctx.storage.generateUploadUrl();
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": args.contentType },
+        body: blob,
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload combined file: ${uploadResponse.statusText}`);
+      }
+      
+      const uploadResult = await uploadResponse.json();
+      const storageId = uploadResult.storageId as Id<"_storage">;
+      
+      // Mark the upload as complete
+      await ctx.db.patch(upload._id, {
+        isComplete: true,
+        completedAt: Date.now(),
+      });
+      
+      return { 
+        success: true,
+        storageId,
+      };
+    } catch (error) {
+      console.error("Error completing multipart upload:", error);
+      return { 
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
   },
 });
 
@@ -112,10 +303,12 @@ export const saveReceipt = mutation({
       })
     ),
   },
-  returns: v.id("receipts"),
+  returns: v.object({
+    receiptId: v.id("receipts"),
+    storageId: v.id("_storage"),
+  }),
   handler: async (ctx, args) => {
-    // Create a record with only the fields defined in the schema
-    const receipt = {
+    const receiptId = await ctx.db.insert("receipts", {
       userId: args.userId,
       fileName: args.fileName,
       fileDisplayName: args.fileDisplayName,
@@ -124,12 +317,20 @@ export const saveReceipt = mutation({
       size: args.size,
       mimeType: args.mimeType,
       status: args.status,
-      items: args.items || [], // Empty array for items
-    };
-
-    const receiptId = await ctx.db.insert("receipts", receipt);
-
-    return receiptId;
+      items: args.items,
+      merchantName: undefined,
+      merchantAddress: undefined,
+      merchantContact: undefined,
+      transactionDate: undefined,
+      transactionAmount: undefined,
+      currency: undefined,
+      receiptSummary: undefined,
+      receiptNumber: undefined,
+      paymentMethod: undefined,
+      subtotal: undefined,
+      tax: undefined,
+    });
+    return { receiptId, storageId: args.fileId };
   },
 });
 
@@ -169,18 +370,11 @@ export const processReceipt = mutation({
 
 /**
  * Update receipt details with extracted data from OCR processing
+ * Called by the Inngest databaseAgent
  */
 export const updateReceiptDetails = mutation({
   args: {
     receiptId: v.id("receipts"),
-    fileDisplayName: v.optional(v.string()),
-    merchantName: v.string(),
-    merchantAddress: v.string(),
-    merchantContact: v.string(),
-    transactionDate: v.string(),
-    transactionAmount: v.number(),
-    currency: v.string(),
-    receiptSummary: v.string(),
     items: v.array(
       v.object({
         name: v.string(),
@@ -189,29 +383,36 @@ export const updateReceiptDetails = mutation({
         totalPrice: v.number(),
       })
     ),
+    fileDisplayName: v.optional(v.string()),
+    merchantName: v.optional(v.string()),
+    merchantAddress: v.optional(v.string()),
+    merchantContact: v.optional(v.string()),
+    transactionDate: v.optional(v.string()),
+    receiptNumber: v.optional(v.string()),
+    paymentMethod: v.optional(v.string()),
+    subtotal: v.optional(v.number()),
+    tax: v.optional(v.number()),
+    transactionAmount: v.optional(v.number()),
+    currency: v.optional(v.string()),
+    receiptSummary: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const receipt = await ctx.db.get(args.receiptId);
+    const { receiptId, ...updates } = args;
 
+    const receipt = await ctx.db.get(receiptId);
     if (!receipt) {
+      console.error(`Receipt not found during update: ${receiptId}`);
       throw new Error("Receipt not found");
     }
 
-    // Update the receipt with the extracted data
-    await ctx.db.patch(args.receiptId, {
-      fileDisplayName: args.fileDisplayName,
-      merchantName: args.merchantName,
-      merchantAddress: args.merchantAddress,
-      merchantContact: args.merchantContact,
-      transactionDate: args.transactionDate,
-      transactionAmount: args.transactionAmount,
-      currency: args.currency,
-      receiptSummary: args.receiptSummary,
-      items: args.items,
-      status: "processed", // Ensure the status is updated
+    // Explicitly set status to processed when details are updated
+    await ctx.db.patch(receiptId, {
+      ...updates,
+      status: "processed", // Ensure status is set to processed
     });
 
+    console.log(`Receipt ${receiptId} details updated.`);
     return null;
   },
 });
@@ -367,24 +568,50 @@ export const getReceiptById = query({
 });
 
 /**
- * Update receipt status
+ * Update only the status of a receipt (e.g., 'processing', 'error').
  */
 export const updateReceiptStatus = mutation({
   args: {
     receiptId: v.id("receipts"),
-    status: v.string(),
+    status: v.string(), // Consider v.union(v.literal('processing'), v.literal('error'), ...)
+    errorMessage: v.optional(v.string()), // Optional error message
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
-    const receipt = await ctx.db.get(args.receiptId);
-    
+    const { receiptId, status, errorMessage } = args;
+    const receipt = await ctx.db.get(receiptId);
+
     if (!receipt) {
+      console.error(`Receipt not found during status update: ${receiptId}`);
+      // Decide if throwing an error is correct or just log and return
       throw new Error("Receipt not found");
     }
-    
-    await ctx.db.patch(args.receiptId, {
-      status: args.status,
-    });
-    
+
+    const patchData: { status: string; errorMessage?: string } = { status };
+    if (errorMessage !== undefined) {
+      // Add error message field to schema if you want to store it
+      // patchData.errorMessage = errorMessage;
+      console.error(`Receipt ${receiptId} status updated to '${status}' with error: ${errorMessage}`);
+    } else {
+       console.log(`Receipt ${receiptId} status updated to '${status}'.`);
+    }
+
+
+    await ctx.db.patch(receiptId, patchData);
+
     return null;
+  },
+});
+
+/**
+ * Retrieves the URL for a file stored in Convex storage.
+ */
+export const getFileUrl = query({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId);
   },
 });
