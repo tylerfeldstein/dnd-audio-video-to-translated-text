@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Id } from "@/convex/_generated/dataModel";
+import { TranslationPanel } from "./translation-panel";
 
 interface Media {
   _id: Id<"media">;
@@ -27,6 +28,12 @@ interface Media {
   transcriptionText?: string;
   transcribedAt?: number;
   duration?: number;
+  detectedLanguage?: string;
+  translations?: Array<{
+    targetLanguage: string;
+    translatedText: string;
+    translatedAt: number;
+  }>;
 }
 
 interface MediaDialogProps {
@@ -226,6 +233,17 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
                 <p className="whitespace-pre-wrap text-sm">
                   {media.transcriptionText}
                 </p>
+              </div>
+
+              {/* Add Translation Panel */}
+              <div className="mt-6 pt-6 border-t">
+                <h3 className="text-lg font-medium mb-4">Translation</h3>
+                <TranslationPanel
+                  mediaId={media._id}
+                  sourceText={media.transcriptionText}
+                  detectedLanguage={media.detectedLanguage}
+                  translations={media.translations}
+                />
               </div>
             </div>
           )}

@@ -169,4 +169,29 @@ export const getFileUrl = query({
   handler: async (ctx, args) => {
     return await ctx.storage.getUrl(args.storageId);
   },
+});
+
+export const updateTranslations = mutation({
+  args: {
+    mediaId: v.id("media"),
+    translations: v.array(
+      v.object({
+        targetLanguage: v.string(),
+        translatedText: v.string(),
+        translatedAt: v.number(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const media = await ctx.db.get(args.mediaId);
+    if (!media) {
+      throw new Error("Media not found");
+    }
+
+    await ctx.db.patch(args.mediaId, {
+      translations: args.translations,
+    });
+
+    return { success: true };
+  },
 }); 

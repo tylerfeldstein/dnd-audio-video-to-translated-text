@@ -1,76 +1,267 @@
 ---
-description: 
+description: Inngest functions and agentkit guides
 globs: 
 alwaysApply: false
 ---
-# INNGEST RULES
+# Inngest & AgentKit Integration
 
-## Function Conventions
-- All background logic must be written using `inngest.createFunction` and placed in `inngest/functions/`.
-- Use descriptive function `id` and dot-case event names (e.g., `web.scrape.completed`, `agent.run.requested`).
+## 1. Core Principles & Tech Stack Integration
 
-```ts
-export const processData = inngest.createFunction(
-  { id: "process-data" },
-  { event: "data.scraped" },
-  async ({ event, step }) => {
-    // ...
-  }
-);
-```
+* **Purpose:** These rules guide the setup and implementation of background tasks, durable workflows, and AI agents using Inngest and Inngest AgentKit within the existing project (Next.js 15, Convex, Clerk, Shadcn, Tailwind).
+* **Goals:** Ensure reliable, observable, and maintainable background processing and AI agent interactions, leveraging Inngest's durability and AgentKit's structured approach.
+* **Key Inngest Concepts:** Events, Functions, Steps, Flow Control, Error Handling, Retries, Cancellation.
+* **Key AgentKit Concepts:** Agents, Tools, Networks, State, Routers.
 
-## Triggering Events
-- Use `inngest.send()` to emit events from server actions or backend code.
-- In Python, use Inngest REST API to send events with proper auth.
+## 2. Project Structure & Naming Conventions
 
-## Step Management
-- Use `step.run()` for each logical part of a job.
-- Add `step.sleep()` and `step.retry()` for resilience and observability.
+* **Inngest API Handler:**
+    * Create the main Inngest API route handler at `/app/api/inngest/route.ts`.
+    * This file initializes the Inngest client and serves all defined Inngest functions.
+* **Inngest Artifacts Organization:** Create a root `/inngest` directory:
+    * `/inngest/client.ts`: Define and export the shared Inngest client instance.
+    * `/inngest/events.ts`: Define TypeScript types/interfaces and Zod schemas for all custom events.
+    * `/inngest/functions/`: Directory containing individual Inngest function definitions (e.g., `billing-functions.ts`).
+    * `/inngest/agents/`: Directory for AgentKit agent definitions (`createAgent`).
+    * `/inngest/tools/`: Directory for AgentKit tool definitions (`createTool`).
+    * `/inngest/networks/`: Directory for AgentKit network definitions (`createNetwork`).
+* **Naming Conventions:**
+    * **Files/Directories:** `lowercase-with-dashes` (kebab-case).
+    * **Inngest Function IDs:** Descriptive `lowercase-with-dashes` (e.g., `"process-user-signup"`).
+    * **Event Names:** Structured string `domain/resource.action[.status]` (e.g., `"clerk/user.created"`). Define in `/inngest/events.ts`.
+    * **Agent/Tool/Network IDs:** Descriptive `camelCase` or `lowercase-with-dashes` strings.
+    * **Variables/Functions:** `camelCase`.
+    * **TypeScript Types/Interfaces:** `PascalCase`. Props use `camelCase`.
 
-# AGENTKIT RULES 
+## 3. Setup & Configuration
 
-## Agent Design
-- Use `defineAgent()` for agents, and define modular tools via `defineTool()`.
-- Tools must be colocated with agents or organized in `/agents/tools/`.
+* **Inngest Client:** Instantiate in `/inngest/client.ts` using `new Inngest({ id: "your-app-name" })`. Export the client instance. Use Zod for schema validation.
+* **API Route (`/app/api/inngest/route.ts`):** Import client and all functions/agents/networks. Use `serve` from `"inngest/next"`.
+    ```typescript
+    // /app/api/inngest/route.ts
+    import { serve } from "inngest/next";
+    import { inngest } from "@/inngest/client"; // Assuming '@' alias
+    import { emailWelcomeUser } from "@/inngest/functions/user-functions";
+    import { supportAgent } from "@/inngest/agents/support-agent";
+    // ... import others
 
-```ts
-const summarizeText = defineTool({
-  name: "summarize-text",
-  description: "Summarizes content using LLM",
-  run: async ({ input }: { input: string }) => { /* ... */ }
-});
-```
+    export const { GET, POST, PUT } = serve({
+      client: inngest,
+      functions: [
+        emailWelcomeUser,
+        supportAgent,
+        // ... all functions/agents here
+      ],
+    });
+    ```
+* **Environment Variables:** Configure `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, plus any LLM keys (`OPENAI_API_KEY`) or other secrets needed by functions/tools.
 
-## Agent Logging
-- Each agent run must log:
-  - `agentRunId`
-  - input
-  - status
-  - output
-  - error (if applicable)
-- Log output and run metadata to SQLite tables (`agent_runs`, `tool_logs`, etc.)
+## 4. Events
 
-## Prompt Structure
-- Store reusable prompts in `/lib/prompts/`.
-- Use templating (e.g. Mustache, or string literals) to maintain prompt versions.
+* **Definition:** Define strongly-typed payloads and Zod schemas in `/inngest/events.ts`.
+* **Payload Structure:** `name` (string), `data` (typed object), `user` (optional context), `ts`, `v`.
+* **Context Propagation:** When sending events (`inngest.send`), include necessary context like `userId` (from Clerk `auth()`) in `data` or `user` if the triggered function/agent needs it for authorization or data access (e.g., Convex).
+    ```typescript
+    // Example: Sending event from Server Action with context
+    'use server';
+    import { inngest } from '@/inngest/client';
+    import { auth } from '@clerk/nextjs/server';
 
+    export async function triggerReportGeneration(params: { reportId: string }) {
+      const { userId } = auth();
+      if (!userId) throw new Error("Not authenticated");
 
+      await inngest.send({
+        name: "reports/generate.request",
+        data: { reportId: params.reportId, requestingUserId: userId },
+        user: { clerkUserId: userId } // Alternative context placement
+      });
+    }
+    ```
+* **Triggering:** Use `await inngest.send()`. Events trigger functions with matching `event` names.
 
-#  TYPESCRIPT RULES 
+## 5. Inngest Functions (Standard) & Steps
 
-- Always use strict mode (`"strict": true` in `tsconfig.json`)
-- Explicitly type props, function returns, and complex objects.
-- Validate all external input and LLM output with `zod`.
+* **Function Definition:** Use `inngest.createFunction()` from `/inngest/client.ts`. Provide ID, trigger, and handler `async ({ event, step }) => { ... }`.
+* **Steps Definition:** Steps are the fundamental building blocks, transforming functions into reliable workflows capable of running for extended periods and recovering from failures. Each step is a discrete task that can be executed, retried, and recovered independently without re-executing other successful steps.
+* **Using Steps:** Implement steps using the `step` object. Key utilities include:
+    * `step.run("step-name", async () => { ... })`: Execute fallible code. Automatically retried. Returns result. Must be `async`. Step name unique within the run.
+    * `step.sleep("step-name", duration)`: Pause execution (e.g., `"5m"`, `"1h"`).
+    * `step.waitForEvent("step-name", { event: "...", timeout: duration, match?: {...} })`: Pause until a specific event arrives or timeout.
+    * `step.invoke("step-name", { function: otherFunc, data: {...} })`: Call another Inngest function.
+* **Step Example:**
+    ```typescript
+    // Example: Basic step usage ensuring independent execution
+    import { inngest } from "@/inngest/client"; // Assuming '@' alias
 
-# AI/LLM RULES 
+    // Assume fetchDataFromSource and processData are defined elsewhere
+    async function fetchDataFromSource(sourceId: string): Promise<any> { /* ... */ }
+    async function processData(data: any): Promise<void> { /* ... */ }
 
-- Never trust LLM output directly; validate with `zod`.
-- Store all input/output and logs in SQLite tables for traceability.
-- Structure prompt logic — keep roles (`system`, `user`, `assistant`) consistent.
-- Include prompt version and agent version in job metadata.
+    export const importItemData = inngest.createFunction(
+      { id: "import-item-data" },
+      { event: "store/import.requested" },
+      async ({ event, step }) => {
+        // Definition: Each step.run is a discrete, retryable task.
+        const data = await step.run("fetch-item-data", async () => {
+          console.log(`Workspaceing data for source: ${event.data.sourceId}`);
+          return fetchDataFromSource(event.data.sourceId);
+        });
 
-# ENVIRONMENT & MISC RULES 
+        await step.run("process-item-data", async () => {
+          console.log("Processing fetched data...");
+          return processData(data);
+        });
 
-- All environment variables must use safe naming (e.g., `NEXT_PUBLIC_`, `INNGEST_KEY`, etc.).
-- Use `env.ts` wrapper to load and validate required vars at runtime.
-- Avoid `any`, `@ts-ignore`, or inline fetch — abstract and validate all I/O.
+        console.log("Item data import completed successfully.");
+        // Result: If 'process-item-data' fails and retries, 'fetch-item-data' won't re-run.
+      }
+    );
+    ```
+* **Idempotency:** Design step logic to be idempotent where possible to handle retries gracefully.
+* **Interacting with Services (Convex, Clerk):** Use context (`userId`) passed via `event.data`/`event.user` within `step.run` blocks to interact securely with Convex (using server client) or other services requiring authorization.
+
+## 6. AgentKit - Agents (`createAgent`)
+
+* **Definition:** Use `createAgent()` (`@inngest/agentkit/next`) in `/inngest/agents/`. Define `agentId`, `systemPrompt`, `model`, `trigger` event, `tools` array, optional `maxToolRoundtrips`.
+* **Handler:** Receives `{ event, step, tools, state, history }`. AgentKit manages the LLM loop implicitly using steps.
+* **State (`ctx.state`):** Use `state.set(key, value)` / `state.get(key)` within tool calls or custom agent logic to manage persistent information across steps (e.g., conversation snippets, user context). Managed automatically by AgentKit.
+* **Context:** Access context passed via the triggering event (`event.data`, `event.user`). Make available to tools via `ctx.state` or direct passing if needed.
+
+## 7. AgentKit - Tools (`createTool`)
+
+* **Definition:** Use `createTool()` (`@inngest/agentkit/next`) in `/inngest/tools/`. Define `toolId`, clear `description` (for LLM), Zod `input` schema, and `async handler({ input, ctx })`.
+* **Tool Logic:** Handler performs actions: TS code, API calls, Convex operations (use server client, ensure context/auth from `ctx.event` or `ctx.state`), invoke other Inngest functions (`ctx.step.invoke`), use `ctx.step.run` for retryable logic within the tool, update agent state (`ctx.state.set`).
+
+## 8. AgentKit - Networks (`createNetwork`) & Routers
+
+* **Definition:** Use `createNetwork()` in `/inngest/networks/` for multi-agent coordination. Define `networkId`, `trigger`, `nodes` (agents/tools), and routing logic.
+* **Routers (`network.route`):** Define rules based on message content or tool calls to direct flow between agents in the network using standard conditional logic.
+
+## 9. Flow Control, Errors, Retries, Cancellation
+
+### 9.1 Flow Control
+
+* **Conditional Logic:** Use standard JavaScript/TypeScript `if/else` statements *between* steps to control workflow based on the outputs of previous `step.run`, `step.waitForEvent`, etc.
+    ```typescript
+    // Example: Conditional step execution based on previous step's output
+    const initialResult = await step.run("check-user-status", async () => {
+      const status = await checkUserStatus(event.data.userId); // Returns e.g., { isActive: boolean }
+      return status;
+    });
+
+    if (initialResult.isActive) {
+      await step.run("send-active-user-email", async () => { /* ... */ });
+    } else {
+      await step.run("schedule-reactivation-check", async () => { /* ... */ });
+    }
+    ```
+* **Pausing/Waiting:** Use `step.sleep()` for fixed delays and `step.waitForEvent()` to pause until specific external signals are received.
+* **Concurrency & Throttling:** Configure function execution limits in `createFunction` options to manage load and rate limits.
+    * `concurrency: { limit: number }`: Limits the number of runs of this function active at the same time.
+    * `throttle: { limit: number, period: string }`: Limits the rate at which new runs are started (e.g., 10 runs per minute).
+    ```typescript
+    // Example: Throttling and Concurrency settings
+    import { inngest } from "@/inngest/client";
+
+    export const processApiWebhook = inngest.createFunction(
+      {
+        id: "process-webhook",
+        // Concurrency: Allow max 10 concurrent runs for this webhook processor.
+        concurrency: { limit: 10 },
+        // Throttle: Limit incoming webhook processing to 100 per minute.
+        throttle: { limit: 100, period: "1m" },
+      },
+      { event: "webhook/data.received" },
+      async ({ event, step }) => { /* Function logic */ }
+    );
+    ```
+
+### 9.2 Error Handling & Retries
+
+* **Automatic Retries:** Inngest automatically retries steps (`step.run`, `step.invoke`) that throw errors. Retries happen with exponential backoff. Configure default or function-specific retry limits via the `retries` option in `createFunction` (e.g., `retries: 5`). Each step retries independently.
+* **Non-Retriable Errors:** Throw `NonRetriableError` from `"inngest"` within a step to immediately stop retries for that specific step and fail the function run (unless caught or handled by `onFailure`). Use this for validation errors or permanent failures.
+    ```typescript
+    // Example: Handling non-retryable validation errors
+    import { NonRetriableError } from "inngest";
+
+    await step.run("validate-payment-details", async () => {
+      const details = event.data.paymentDetails;
+      if (!areDetailsValid(details)) { // areDetailsValid defined elsewhere
+        // This error stops retries for this step immediately.
+        throw new NonRetriableError("Invalid payment details provided.");
+      }
+      // ... proceed if valid
+    });
+    ```
+* **Function Failure Handler (`onFailure`):** Define an `onFailure` handler in `createFunction` options. This function runs *only* if the main function handler fails completely after exhausting all step retries (or encountering a `NonRetriableError` that isn't caught). Use it for cleanup, alerting, or marking tasks as permanently failed.
+    ```typescript
+    // Example: Function-level failure handler for notifications
+    import { inngest } from "@/inngest/client";
+
+    // Assume notifySupportChannel defined elsewhere
+    async function notifySupportChannel(jobId: string, error: any) { /* ... */ }
+
+    export const runDataAnalysisJob = inngest.createFunction(
+      {
+        id: "run-data-analysis",
+        retries: 3, // Configure max retries for steps in this function
+        // onFailure runs ONLY if the function fails after all retries.
+        onFailure: async ({ event, error /*, step */ }) => {
+          console.error(`Job ${event.data.jobId} failed permanently:`, error);
+          await notifySupportChannel(event.data.jobId, error);
+        },
+      },
+      { event: "analysis/job.requested" },
+      async ({ event, step }) => {
+        await step.run("fetch-analysis-data", async () => { /* ... may fail/retry */ });
+        await step.run("perform-analysis", async () => { /* ... may fail/retry */ });
+        await step.run("store-results", async () => { /* ... may fail/retry */ });
+      }
+    );
+    ```
+
+### 9.3 Cancellation
+
+* **Manual/API Cancellation:** Functions can be canceled via the Inngest dashboard or its API.
+* **Programmatic Handling:** Functions cannot directly detect manual/API cancellation easily *during* a `step.run`. However, you can design workflows to be cancellable using `step.waitForEvent`:
+    * Listen for a specific cancellation event (e.g., `"app/task.cancelled"`) alongside expected events.
+    * Use the `timeout` parameter in `step.waitForEvent` to limit waiting periods. Check the return value: `null` indicates timeout, otherwise it's the received event object.
+    ```typescript
+    // Example: Waiting for confirmation with timeout and cancellation possibility
+    const confirmationEvent = await step.waitForEvent("await-confirmation-or-cancel", {
+      event: "user/action.confirmed", // Event indicating success/continuation
+      timeout: "1h", // How long to wait
+      match: { "data.taskId": event.data.taskId }, // Ensure event matches this task
+      // Consider also listening for a cancel event if one is defined:
+      // event: ["user/action.confirmed", "app/task.cancelled"],
+    });
+
+    if (confirmationEvent === null /* || confirmationEvent.name === "app/task.cancelled" */) {
+      // Handle timeout or explicit cancellation
+      await step.run("handle-timeout-or-cancellation", async () => {
+        console.log(`Task ${event.data.taskId} timed out or was cancelled.`);
+        // Perform cleanup if needed
+      });
+      return { status: "timeout_or_cancelled" };
+    }
+
+    // Proceed if confirmation event was received
+    await step.run("process-user-confirmation", async () => {
+       console.log(`Processing confirmation for task ${event.data.taskId}`);
+       // Use data from confirmationEvent if needed
+    });
+    ```
+
+## 10. Real-time Updates (Client-side)
+
+* **Setup:** Wrap relevant UI parts with `<InngestProvider>`.
+* **Usage:** Use `useEvents` hook (`"inngest/next"`) in Client Components to subscribe to events and update UI based on background progress (e.g., `"ai/agent.step.completed"`, `"job/progress.update"`).
+
+## 11. Security & Best Practices
+
+* **Input Validation:** Use Zod schemas for event data and tool inputs.
+* **Authorization:** Functions/tools must perform authorization using context (`userId`, etc.) passed via event payloads. Validate context.
+* **Secrets:** Use environment variables.
+* **Idempotency:** Design steps/tools to be idempotent.
+* **Observability:** Use clear names (functions, steps, events, agents, tools). Use logging (`console.log` within steps is captured by Inngest).
+* **Focus:** Keep functions/tools focused. Use `step.invoke` for orchestration.

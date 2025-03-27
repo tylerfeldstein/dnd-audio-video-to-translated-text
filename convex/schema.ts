@@ -22,6 +22,12 @@ export default defineSchema({
     transcriptionStatus: v.optional(v.string()), // "pending", "processing", "completed", "error"
     transcriptionText: v.optional(v.string()),
     transcribedAt: v.optional(v.number()),
+    detectedLanguage: v.optional(v.string()), // Language code detected by Whisper
+    translations: v.optional(v.array(v.object({
+      targetLanguage: v.string(), // Language code of the translation
+      translatedText: v.string(), // The translated text
+      translatedAt: v.number(), // Timestamp of translation
+    }))),
   }).index("by_userId", ["userId"]),
 
   receipts: defineTable({
