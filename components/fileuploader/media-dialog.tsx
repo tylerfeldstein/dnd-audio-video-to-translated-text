@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Id } from "@/convex/_generated/dataModel";
 import { TranslationPanel } from "./translation-panel";
+import { GrammarCheckPanel } from "./grammar-check-panel";
 
 interface Media {
   _id: Id<"media">;
@@ -233,6 +234,15 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
                 <p className="whitespace-pre-wrap text-sm">
                   {media.transcriptionText}
                 </p>
+              </div>
+
+              {/* Add Grammar Check Panel for original transcription */}
+              <div className="mt-6 pt-6 border-t">
+                <GrammarCheckPanel 
+                  text={media.transcriptionText} 
+                  label="Original Transcription Grammar Check"
+                  language={media.detectedLanguage}
+                />
               </div>
 
               {/* Add Translation Panel */}

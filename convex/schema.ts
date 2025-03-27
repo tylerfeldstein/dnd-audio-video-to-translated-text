@@ -82,4 +82,29 @@ export default defineSchema({
     storageId: v.optional(v.id("_storage")),
     uploadedAt: v.number(),
   }).index("by_uploadId", ["uploadId"]),
+  
+  // Table to store grammar check results
+  grammarChecks: defineTable({
+    jobId: v.string(), // unique identifier for this check
+    userId: v.string(), // who requested the check
+    originalText: v.string(), // text that was submitted
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("completed"),
+      v.literal("error")
+    ),
+    corrections: v.optional(v.array(
+      v.object({
+        message: v.string(), // explanation of the issue
+        offset: v.number(), // start position in text
+        length: v.number(), // length of the issue
+        replacement: v.string(), // suggested replacement
+      })
+    )),
+    detectedLanguage: v.optional(v.string()), // Language detected by LanguageTool
+    error: v.optional(v.string()),
+    createdAt: v.number(), // timestamp of creation
+    completedAt: v.optional(v.number()), // timestamp of completion
+  }).index("by_userId", ["userId"]).index("by_jobId", ["jobId"]),
 });

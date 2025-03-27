@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Id } from "@/convex/_generated/dataModel";
-import { requestTranslation } from "@/app/actions/translation";
+import { requestTranslation } from "@/actions/translation/translation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { languages, getLanguageName, getAvailableTargetLanguages } from "@/lib/languages";
 import { Badge } from "@/components/ui/badge";
+import { GrammarCheckPanel } from "./grammar-check-panel";
 
 interface Translation {
   targetLanguage: string;
@@ -165,9 +166,22 @@ export function TranslationPanel({ mediaId, detectedLanguage }: TranslationPanel
           {currentTranslation.error ? (
             <p className="text-sm text-red-500">{currentTranslation.error}</p>
           ) : (
-            <p className="whitespace-pre-wrap text-sm">
-              {currentTranslation.translatedText || "Translation in progress..."}
-            </p>
+            <>
+              <p className="whitespace-pre-wrap text-sm">
+                {currentTranslation.translatedText || "Translation in progress..."}
+              </p>
+              
+              {/* Add Grammar Check for translated text */}
+              {currentTranslation.status === "completed" && currentTranslation.translatedText && (
+                <div className="mt-4 pt-4 border-t">
+                  <GrammarCheckPanel 
+                    text={currentTranslation.translatedText} 
+                    label={`Translated ${getLanguageName(selectedLanguage)} Grammar Check`}
+                    language={selectedLanguage}
+                  />
+                </div>
+              )}
+            </>
           )}
         </Card>
       )}

@@ -9,6 +9,7 @@ import {
   pythonTranscriptionFallback
 } from "@/inngest/functions/transcribe";
 import { translateTextWorkflow } from "@/inngest/functions/translate/translate";
+import { grammarCorrectWorkflow } from "@/inngest/functions/grammerChecker";
 
 // The standard export approach that handles empty bodies automatically
 export const { GET, POST, PUT } = serve({
@@ -18,7 +19,8 @@ export const { GET, POST, PUT } = serve({
     extractAndSavePDF,
     mediaTranscriptionWorkflow,
     pythonTranscriptionFallback,
-    translateTextWorkflow
+    translateTextWorkflow,
+    grammarCorrectWorkflow
   ],
   // Use streaming to allow for longer function execution
   streaming: "allow"

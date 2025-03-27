@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as files from "../files.js";
+import type * as grammar from "../grammar.js";
 import type * as media from "../media.js";
 
 /**
@@ -26,6 +27,7 @@ import type * as media from "../media.js";
  */
 declare const fullApi: ApiFromModules<{
   files: typeof files;
+  grammar: typeof grammar;
   media: typeof media;
 }>;
 export declare const api: FilterApi<

@@ -54,6 +54,8 @@ or run with frontend
 pnpm dev:stack
 ```
 
+---
+
 ## libre translate
 
 To start the container
@@ -99,6 +101,8 @@ docker-compose up -d --build
 
 The Api docs for the container are at `https://libretranslate.com/docs/#/translate/get_languages`
 
+---
+
 ## Grammer checker
 
 Pull container
@@ -110,7 +114,7 @@ docker pull erikvl87/languagetool
 Run container
 
 ```sh
-docker run --rm -p 8010:8010 erikvl87/languagetool
+docker run -d --rm -p 8010:8010 erikvl87/languagetool
 ```
 
 sample code
@@ -128,3 +132,6 @@ const response = await fetch("http://localhost:8010/v2/check", {
 const result = await response.json();
 console.log(result);
 ```
+
+---
+## KOKORO Text to voice
