@@ -52,6 +52,7 @@
     "convex": "^1.21.0",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.5.2",
+    "framer-motion": "^12.6.2",
     "franc-min": "^6.2.0",
     "inngest": "^3.34.1",
     "input-otp": "^1.4.2",

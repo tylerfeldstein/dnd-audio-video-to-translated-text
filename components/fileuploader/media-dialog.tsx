@@ -9,6 +9,18 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Id } from "@/convex/_generated/dataModel";
@@ -18,6 +30,8 @@ import { AIEnhancementPanel } from "./ai-enhancement-panel";
 import { ConvexReactClient } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { getVideoSupportInfo } from "@/utils/compression";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 // Initialize the Convex client
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -52,6 +66,7 @@ interface MediaDialogProps {
 
 export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState("media");
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoHeight, setVideoHeight] = useState<number>(0);
@@ -60,6 +75,12 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [videoSupport, setVideoSupport] = useState<Record<string, boolean>>({});
+  const [openAccordion, setOpenAccordion] = useState<Record<string, string[]>>({
+    transcription: ["transcription-original"],
+    media: [],
+    enhancement: [],
+    translation: []
+  });
 
   // Calculate optimal video height based on screen size
   useEffect(() => {
@@ -100,6 +121,9 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
           dialogContent.scrollTop = 0;
         }
       }, 10);
+      
+      // Reset to media tab when dialog opens
+      setActiveTab("media");
     }
   }, [isOpen]);
 
@@ -153,6 +177,14 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
     }
   };
 
+  // Function to handle accordion state change
+  const handleAccordionChange = (tab: string, value: string[]) => {
+    setOpenAccordion(prev => ({
+      ...prev,
+      [tab]: value
+    }));
+  };
+
   if (!media) return null;
 
   const isAudio = media.mimeType?.includes("audio");
@@ -193,19 +225,43 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
   };
 
   const getStatusBadge = (status?: string) => {
-    if (!status) return <Badge variant="outline">Pending</Badge>;
+    if (!status) return (
+      <Badge variant="outline" className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-400">
+        Pending
+      </Badge>
+    );
     
     switch (status) {
       case "pending":
-        return <Badge variant="outline">Pending</Badge>;
+        return (
+          <Badge variant="outline" className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-400">
+            Pending
+          </Badge>
+        );
       case "processing":
-        return <Badge variant="secondary">Processing</Badge>;
+        return (
+          <Badge variant="secondary" className="bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-300">
+            Processing
+          </Badge>
+        );
       case "completed":
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">Completed</Badge>;
+        return (
+          <Badge className="bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-200 dark:border-green-800/50 text-green-700 dark:text-green-300">
+            Completed
+          </Badge>
+        );
       case "error":
-        return <Badge variant="destructive">Error</Badge>;
+        return (
+          <Badge variant="destructive" className="bg-gradient-to-r from-red-100 to-rose-100 dark:from-red-900/30 dark:to-rose-900/30 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300">
+            Error
+          </Badge>
+        );
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return (
+          <Badge variant="outline" className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-400">
+            {status}
+          </Badge>
+        );
     }
   };
 
@@ -220,268 +276,429 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
   // Use the refreshed URL if available, otherwise use the original URL
   const currentFileUrl = refreshedFileUrl || media?.fileUrl;
 
+  // Only show transcription and related tabs if transcription is completed
+  const showTranscriptionTabs = media.transcriptionStatus === "completed" && media.transcriptionText;
+
+  // Transcription reference component to reuse across tabs
+  const TranscriptionReference = ({ tab }: { tab: string }) => {
+    if (!media?.transcriptionText) return null;
+    
+    return (
+      <Accordion
+        type="multiple"
+        value={openAccordion[tab]}
+        onValueChange={(value) => handleAccordionChange(tab, value)}
+        className="w-full mb-4"
+      >
+        <AccordionItem value="transcription-original" className="border rounded-md shadow-sm overflow-hidden bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
+          <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all duration-200">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-800 dark:text-gray-200">Original Transcription</span>
+              {media.detectedLanguage && (
+                <Badge variant="outline" className="text-xs bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-blue-200 dark:from-blue-900/20 dark:to-indigo-900/20 dark:text-blue-300 dark:border-blue-800">
+                  {media.detectedLanguage}
+                </Badge>
+              )}
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 pt-2 bg-gradient-to-b from-gray-50/50 to-white dark:from-gray-900/50 dark:to-gray-950">
+            <div className="max-h-[200px] overflow-y-auto prose dark:prose-invert border-l-2 border-l-indigo-200 dark:border-l-indigo-800 pl-3 mt-2 bg-white/50 dark:bg-gray-950/50 rounded-r">
+              <p className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+                {media.transcriptionText}
+              </p>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={copyToClipboard}
+                className="text-xs bg-gradient-to-r from-gray-50 to-white hover:from-indigo-50 hover:to-blue-50 dark:from-gray-900 dark:to-gray-950 dark:hover:from-indigo-950/30 dark:hover:to-blue-950/30 transition-all duration-300 border-gray-200 dark:border-gray-800"
+              >
+                {copied ? "Copied!" : "Copy to Clipboard"}
+              </Button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[90vw] md:max-w-[800px] lg:max-w-[1000px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{media.name}</DialogTitle>
-          <DialogDescription>
-            Uploaded on {formatDate(media._creationTime)}
+      <DialogContent className="sm:max-w-[90vw] md:max-w-[800px] lg:max-w-[1000px] max-h-[90vh] overflow-y-auto bg-gradient-to-b from-white via-white to-gray-50 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900 border-gray-200 dark:border-gray-800 shadow-lg">
+        <DialogHeader className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 pb-4 border-b border-gray-100 dark:border-gray-800 -mx-6 px-6">
+          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-800 bg-clip-text text-transparent dark:from-white dark:to-gray-200">
+            {media.name}
+          </DialogTitle>
+          <DialogDescription className="text-gray-600 dark:text-gray-400">
+            Uploaded on <span className="text-indigo-600 dark:text-indigo-400 font-medium">{formatDate(media._creationTime)}</span>
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 my-4">
+        <div className="grid gap-4 my-4">
           {/* Media Info */}
-          <div className="flex flex-wrap gap-4 text-sm">
+          <div className="flex flex-wrap gap-4 text-sm mb-2 p-2 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-100 dark:border-gray-800">
             <div>
-              <span className="font-medium">Type:</span>{" "}
-              {media.mimeType}
+              <span className="font-medium text-gray-700 dark:text-gray-300">Type:</span>{" "}
+              <span className="text-gray-600 dark:text-gray-400">{media.mimeType}</span>
             </div>
             <div>
-              <span className="font-medium">Size:</span>{" "}
-              {formatFileSize(media.size)}
+              <span className="font-medium text-gray-700 dark:text-gray-300">Size:</span>{" "}
+              <span className="text-gray-600 dark:text-gray-400">{formatFileSize(media.size)}</span>
             </div>
             {media.duration && (
               <div>
-                <span className="font-medium">Duration:</span>{" "}
-                {formatDuration(media.duration)}
+                <span className="font-medium text-gray-700 dark:text-gray-300">Duration:</span>{" "}
+                <span className="text-gray-600 dark:text-gray-400">{formatDuration(media.duration)}</span>
               </div>
             )}
             <div>
-              <span className="font-medium">Transcription:</span>{" "}
+              <span className="font-medium text-gray-700 dark:text-gray-300">Transcription:</span>{" "}
               {getStatusBadge(media.transcriptionStatus)}
             </div>
           </div>
 
-          {/* Media Player */}
-          <div className="border rounded-lg overflow-hidden bg-black flex flex-col justify-center items-center">
-            {isAudio && currentFileUrl && (
-              <div className="p-4 flex justify-center items-center min-h-[100px] w-full bg-gray-900">
-                <audio
-                  ref={audioRef}
-                  src={currentFileUrl}
-                  controls
-                  className="w-full max-w-full"
-                  controlsList="nodownload"
-                  preload="metadata"
-                  autoPlay={false}
-                />
-              </div>
-            )}
-            {isVideo && currentFileUrl ? (
-              <div className="flex flex-col items-center w-full">
-                <video
-                  ref={videoRef}
-                  controls
-                  className="max-w-full w-auto"
-                  style={{ 
-                    maxHeight: videoHeight ? `${videoHeight}px` : '60vh', 
-                    display: 'block',
-                    margin: '0 auto'
-                  }}
-                  controlsList="nodownload"
-                  preload="auto"
-                  playsInline
-                  autoPlay={false}
-                  crossOrigin="anonymous"
-                  onLoadedMetadata={() => console.log("Video metadata loaded successfully")}
-                  onCanPlay={() => console.log("Video can play")}
-                  onLoadStart={() => console.log("Video load started")}
-                  onError={(e) => {
-                    // Log detailed error information
-                    console.error("Video error:", e);
-                    if (videoRef.current) {
-                      const errorCode = videoRef.current.error?.code;
-                      const errorMessage = videoRef.current.error?.message;
-                      console.error("Video error code:", errorCode);
-                      console.error("Video error message:", errorMessage);
-                      setErrorDetails(`Error playing video (${errorCode}): ${errorMessage || 'Unknown error'}`);
-                    }
-                  }}
-                >
-                  <source src={currentFileUrl} type={media.mimeType} />
-                  <source src={currentFileUrl} type="video/mp4" />
-                  <source src={currentFileUrl} type="video/webm" />
-                  Your browser does not support the video tag.
-                </video>
-                
-                {errorDetails && (
-                  <div className="p-2 mt-2 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 text-sm rounded-md w-full text-center">
-                    {errorDetails}
-                    <div className="flex justify-center mt-2 space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={refreshFileUrl}
-                        disabled={isRefreshing}
-                      >
-                        {isRefreshing ? "Refreshing..." : "Refresh URL"}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowDebug(!showDebug)}
-                      >
-                        {showDebug ? "Hide Debug Info" : "Show Debug Info"}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                      >
-                        <a href={currentFileUrl} target="_blank" rel="noopener noreferrer">
-                          Open in New Tab
-                        </a>
-                      </Button>
-                    </div>
-                    
-                    {showDebug && (
-                      <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 text-left rounded overflow-auto max-h-[200px]">
-                        <h4 className="font-semibold">Debug Information</h4>
-                        <p><strong>Media Type:</strong> {media.mimeType}</p>
-                        <p><strong>File URL:</strong> {currentFileUrl ? "Available" : "Not available"}</p>
-                        <p><strong>File Size:</strong> {formatFileSize(media.size)}</p>
-                        
-                        <h4 className="font-semibold mt-2">Browser Video Support:</h4>
-                        <ul className="list-disc pl-5">
-                          {Object.entries(videoSupport).map(([format, supported]) => (
-                            <li key={format} className={supported ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                              {format}: {supported ? "Supported" : "Not supported"}
-                            </li>
-                          ))}
-                        </ul>
-                        
-                        <p className="mt-2"><strong>Note:</strong> The video may have been compressed during upload, which could affect compatibility.</p>
-                        
-                        <div className="mt-4">
-                          <h4 className="font-semibold">Alternative Player:</h4>
-                          <div className="bg-black p-2 mt-2 rounded">
-                            <iframe 
-                              src={currentFileUrl}
-                              width="100%" 
-                              height="200" 
-                              allow="autoplay; fullscreen"
-                              title="Video Player"
-                              className="border-0"
-                            />
-                          </div>
+          <Tabs 
+            value={activeTab} 
+            onValueChange={setActiveTab}
+            className="w-full space-y-4"
+          >
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 p-1 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-950 rounded-lg">
+              <TabsTrigger 
+                value="media" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white dark:data-[state=active]:from-blue-600 dark:data-[state=active]:to-indigo-600 transition-all duration-300"
+              >
+                Media
+              </TabsTrigger>
+              <TabsTrigger 
+                value="transcription" 
+                disabled={!showTranscriptionTabs}
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white dark:data-[state=active]:from-blue-600 dark:data-[state=active]:to-indigo-600 transition-all duration-300"
+              >
+                Transcription
+              </TabsTrigger>
+              <TabsTrigger 
+                value="enhancement" 
+                disabled={!showTranscriptionTabs}
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white dark:data-[state=active]:from-blue-600 dark:data-[state=active]:to-indigo-600 transition-all duration-300"
+              >
+                Enhancement
+              </TabsTrigger>
+              <TabsTrigger 
+                value="translation" 
+                disabled={!showTranscriptionTabs}
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white dark:data-[state=active]:from-blue-600 dark:data-[state=active]:to-indigo-600 transition-all duration-300"
+              >
+                Translation
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Media Tab */}
+            <TabsContent value="media" className="space-y-4">
+              {/* Original media card content */}
+              
+              {/* Add transcription reference if completed */}
+              {media.transcriptionStatus === "completed" && media.transcriptionText && (
+                <TranscriptionReference tab="media" />
+              )}
+              
+              <Card className="overflow-hidden border-gray-200 dark:border-gray-700 shadow-md">
+                <CardContent className="p-0">
+                  <div className="border-0 rounded-lg overflow-hidden bg-gradient-to-b from-gray-900 via-black to-gray-900 flex flex-col justify-center items-center">
+                    {isAudio && currentFileUrl && (
+                      <div className="p-6 flex justify-center items-center min-h-[120px] w-full bg-gradient-to-r from-indigo-900/20 via-gray-900 to-indigo-900/20">
+                        <audio
+                          ref={audioRef}
+                          src={currentFileUrl}
+                          controls
+                          className="w-full max-w-full"
+                          controlsList="nodownload"
+                          preload="metadata"
+                          autoPlay={false}
+                        />
+                      </div>
+                    )}
+                    {isVideo && currentFileUrl ? (
+                      <div className="flex flex-col items-center w-full">
+                        <div className="w-full bg-gradient-to-b from-gray-900/50 to-black p-4 flex justify-center">
+                          <video
+                            ref={videoRef}
+                            controls
+                            className="max-w-full w-auto rounded-md shadow-lg"
+                            style={{ 
+                              maxHeight: videoHeight ? `${videoHeight}px` : '60vh', 
+                              display: 'block',
+                              margin: '0 auto'
+                            }}
+                            controlsList="nodownload"
+                            preload="auto"
+                            playsInline
+                            autoPlay={false}
+                            crossOrigin="anonymous"
+                            onLoadedMetadata={() => console.log("Video metadata loaded successfully")}
+                            onCanPlay={() => console.log("Video can play")}
+                            onLoadStart={() => console.log("Video load started")}
+                            onError={(e) => {
+                              // Log detailed error information
+                              console.error("Video error:", e);
+                              if (videoRef.current) {
+                                const errorCode = videoRef.current.error?.code;
+                                const errorMessage = videoRef.current.error?.message;
+                                console.error("Video error code:", errorCode);
+                                console.error("Video error message:", errorMessage);
+                                setErrorDetails(`Error playing video (${errorCode}): ${errorMessage || 'Unknown error'}`);
+                              }
+                            }}
+                          >
+                            <source src={currentFileUrl} type={media.mimeType} />
+                            <source src={currentFileUrl} type="video/mp4" />
+                            <source src={currentFileUrl} type="video/webm" />
+                            Your browser does not support the video tag.
+                          </video>
                         </div>
+                        
+                        {errorDetails && (
+                          <div className="p-3 mt-3 bg-gradient-to-r from-red-100 to-red-50 dark:from-red-900/30 dark:to-red-900/20 text-red-800 dark:text-red-200 text-sm rounded-md w-full mx-4 text-center border border-red-200 dark:border-red-800/50 shadow-sm">
+                            {errorDetails}
+                            <div className="flex justify-center mt-3 space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={refreshFileUrl}
+                                disabled={isRefreshing}
+                                className="bg-white hover:bg-red-50 dark:bg-gray-950 dark:hover:bg-red-900/30 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300"
+                              >
+                                {isRefreshing ? "Refreshing..." : "Refresh URL"}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowDebug(!showDebug)}
+                                className="bg-white hover:bg-gray-50 dark:bg-gray-950 dark:hover:bg-gray-900 border-gray-200 dark:border-gray-800/50"
+                              >
+                                {showDebug ? "Hide Debug Info" : "Show Debug Info"}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                asChild
+                                className="bg-white hover:bg-blue-50 dark:bg-gray-950 dark:hover:bg-blue-900/30 border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-300"
+                              >
+                                <a href={currentFileUrl} target="_blank" rel="noopener noreferrer">
+                                  Open in New Tab
+                                </a>
+                              </Button>
+                            </div>
+                            
+                            {showDebug && (
+                              <div className="mt-4 p-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 text-left rounded-md overflow-auto max-h-[300px] border border-gray-200 dark:border-gray-800 shadow-inner">
+                                <h4 className="font-semibold text-gray-800 dark:text-gray-200 border-b pb-2 mb-3 border-gray-200 dark:border-gray-800">Debug Information</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div>
+                                    <p className="mb-1"><strong className="text-gray-700 dark:text-gray-300">Media Type:</strong> <span className="text-gray-600 dark:text-gray-400">{media.mimeType}</span></p>
+                                    <p className="mb-1"><strong className="text-gray-700 dark:text-gray-300">File URL:</strong> <span className="text-gray-600 dark:text-gray-400">{currentFileUrl ? "Available" : "Not available"}</span></p>
+                                    <p className="mb-1"><strong className="text-gray-700 dark:text-gray-300">File Size:</strong> <span className="text-gray-600 dark:text-gray-400">{formatFileSize(media.size)}</span></p>
+                                  </div>
+                                 
+                                  <div>
+                                    <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Browser Video Support:</h4>
+                                    <ul className="list-disc pl-5 space-y-1">
+                                      {Object.entries(videoSupport).map(([format, supported]) => (
+                                        <li key={format} className={supported ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                                          {format}: {supported ? "Supported" : "Not supported"}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                </div>
+                                
+                                <p className="mt-4 p-2 bg-yellow-50 dark:bg-yellow-900/20 border-l-2 border-yellow-300 dark:border-yellow-700 rounded-r-md text-yellow-800 dark:text-yellow-300"><strong className="text-yellow-700 dark:text-yellow-400">Note:</strong> The video may have been compressed during upload, which could affect compatibility.</p>
+                                
+                                <div className="mt-4">
+                                  <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Alternative Player:</h4>
+                                  <div className="bg-black p-3 rounded-md overflow-hidden">
+                                    <iframe 
+                                      src={currentFileUrl}
+                                      width="100%" 
+                                      height="200" 
+                                      allow="autoplay; fullscreen"
+                                      title="Video Player"
+                                      className="border-0 rounded-md"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Add direct video controls even if no error */}
+                        <div className="mt-4 mb-4 flex justify-center space-x-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="bg-gradient-to-r from-gray-50 to-white hover:from-blue-50 hover:to-blue-50 dark:from-gray-900 dark:to-gray-950 dark:hover:from-blue-900/20 dark:hover:to-blue-900/30 transition-all duration-300 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300"
+                          >
+                            <a href={currentFileUrl} target="_blank" rel="noopener noreferrer">
+                              Open Video in New Tab
+                            </a>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="bg-gradient-to-r from-gray-50 to-white hover:from-green-50 hover:to-green-50 dark:from-gray-900 dark:to-gray-950 dark:hover:from-green-900/20 dark:hover:to-green-900/30 transition-all duration-300 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300"
+                          >
+                            <a 
+                              href={currentFileUrl} 
+                              download={media.name || "video.mp4"}
+                            >
+                              Download Video
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    ) : isVideo && !currentFileUrl && (
+                      <div className="p-6 flex justify-center items-center min-h-[200px] w-full bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white">
+                        <span className="text-gray-300 mr-2">Video URL not available</span>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={refreshFileUrl}
+                          disabled={isRefreshing}
+                          className="border-gray-700 hover:border-blue-700 text-gray-300 hover:text-blue-300 bg-transparent hover:bg-blue-900/20"
+                        >
+                          {isRefreshing ? "Refreshing..." : "Refresh URL"}
+                        </Button>
                       </div>
                     )}
                   </div>
-                )}
+                </CardContent>
+              </Card>
 
-                {/* Add direct video controls even if no error */}
-                <div className="mt-2 flex justify-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                  >
-                    <a href={currentFileUrl} target="_blank" rel="noopener noreferrer">
-                      Open Video in New Tab
-                    </a>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                  >
-                    <a 
-                      href={currentFileUrl} 
-                      download={media.name || "video.mp4"}
-                    >
-                      Download Video
-                    </a>
-                  </Button>
-                </div>
-              </div>
-            ) : isVideo && !currentFileUrl && (
-              <div className="p-4 flex justify-center items-center min-h-[200px] w-full bg-gray-900 text-white">
-                Video URL not available
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="ml-2" 
-                  onClick={refreshFileUrl}
-                  disabled={isRefreshing}
-                >
-                  {isRefreshing ? "Refreshing..." : "Refresh URL"}
-                </Button>
-              </div>
-            )}
-          </div>
+              {/* Transcription Status */}
+              {media.transcriptionStatus === "pending" && (
+                <Card className="p-4 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 shadow-sm">
+                  <CardContent className="pt-4 text-center">
+                    <p className="text-gray-700 dark:text-gray-300">Transcription is pending. Please check back later.</p>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {media.transcriptionStatus === "processing" && (
+                <Card className="p-4 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 shadow-sm">
+                  <CardContent className="pt-4 flex flex-col items-center justify-center gap-3">
+                    <Loader2 className="h-6 w-6 animate-spin text-indigo-500 dark:text-indigo-400" />
+                    <p className="text-gray-700 dark:text-gray-300">Transcription is being processed. Please check back later.</p>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {media.transcriptionStatus === "error" && (
+                <Card className="p-4 bg-gradient-to-r from-red-50 to-red-50/50 dark:from-red-900/20 dark:to-red-900/10 border-red-200 dark:border-red-900/30 shadow-sm">
+                  <CardContent className="pt-4 text-center text-red-800 dark:text-red-300">
+                    <p>There was an error processing the transcription.</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
 
-          {/* Transcription */}
-          {media.transcriptionStatus === "completed" && media.transcriptionText && (
-            <div className="border rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-lg font-medium">Transcription</h3>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={copyToClipboard}
-                >
-                  {copied ? "Copied!" : "Copy to Clipboard"}
-                </Button>
-              </div>
-              <div className="max-h-[300px] overflow-y-auto prose dark:prose-invert">
-                <p className="whitespace-pre-wrap text-sm">
-                  {media.transcriptionText}
-                </p>
-              </div>
+            {/* Transcription Tab */}
+            <TabsContent value="transcription" className="space-y-4">
+              {media.transcriptionStatus === "completed" && media.transcriptionText && (
+                <Card>
+                  <CardHeader className="bg-gradient-to-r from-gray-50/80 to-white dark:from-gray-900/80 dark:to-gray-950 pb-3">
+                    <CardTitle className="flex justify-between items-center">
+                      <span className="bg-gradient-to-r from-gray-800 to-gray-700 bg-clip-text text-transparent dark:from-gray-200 dark:to-white">Original Transcription</span>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={copyToClipboard}
+                        className="bg-gradient-to-r from-gray-50 to-white hover:from-indigo-50 hover:to-blue-50 dark:from-gray-900 dark:to-gray-950 dark:hover:from-indigo-950/30 dark:hover:to-blue-950/30 transition-all duration-300 border-gray-200 dark:border-gray-800"
+                      >
+                        {copied ? "Copied!" : "Copy to Clipboard"}
+                      </Button>
+                    </CardTitle>
+                    {media.detectedLanguage && (
+                      <CardDescription className="text-gray-600 dark:text-gray-400">
+                        Detected Language: <span className="text-indigo-600 dark:text-indigo-400 font-medium">{media.detectedLanguage}</span>
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900/90 pt-4">
+                    <div className="max-h-[300px] overflow-y-auto prose dark:prose-invert border border-gray-100 dark:border-gray-800 rounded-md p-3 bg-white dark:bg-gray-950 shadow-inner">
+                      <p className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+                        {media.transcriptionText}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
 
-              {/* Add AI Enhancement Panel for original transcription */}
-              <div className="mt-6 pt-6 border-t">
-                <AIEnhancementPanel 
-                  mediaId={media._id} 
-                  text={media.transcriptionText} 
-                  label="AI Enhance Transcription"
-                />
-              </div>
+            {/* Enhancement Tab */}
+            <TabsContent value="enhancement" className="space-y-4">
+              {media.transcriptionStatus === "completed" && media.transcriptionText && (
+                <>
+                  <TranscriptionReference tab="enhancement" />
+                  
+                  <Card>
+                    <CardContent className="pt-6 bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900/90">
+                      <GrammarCheckPanel 
+                        text={media.transcriptionText} 
+                        label="Grammar Check"
+                        language={media.detectedLanguage}
+                      />
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="mt-6 overflow-hidden">
+                    <CardContent className="pt-6 bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900/90">
+                      <AIEnhancementPanel 
+                        mediaId={media._id} 
+                        text={media.transcriptionText} 
+                        label="AI Enhancement"
+                      />
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </TabsContent>
 
-              {/* Add Grammar Check Panel for original transcription */}
-              <div className="mt-6 pt-6 border-t">
-                <GrammarCheckPanel 
-                  text={media.transcriptionText} 
-                  label="Original Transcription Grammar Check"
-                  language={media.detectedLanguage}
-                />
-              </div>
-
-              {/* Add Translation Panel */}
-              <div className="mt-6 pt-6 border-t">
-                <h3 className="text-lg font-medium mb-4">Translation</h3>
-                <TranslationPanel
-                  mediaId={media._id}
-                  detectedLanguage={media.detectedLanguage}
-                  translations={media.translations}
-                />
-              </div>
-            </div>
-          )}
-          
-          {media.transcriptionStatus === "pending" && (
-            <div className="text-center p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-              <p>Transcription is pending. Please check back later.</p>
-            </div>
-          )}
-          
-          {media.transcriptionStatus === "processing" && (
-            <div className="text-center p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-              <p>Transcription is being processed. Please check back later.</p>
-            </div>
-          )}
-          
-          {media.transcriptionStatus === "error" && (
-            <div className="text-center p-4 border rounded-lg bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300">
-              <p>There was an error processing the transcription.</p>
-            </div>
-          )}
+            {/* Translation Tab */}
+            <TabsContent value="translation" className="space-y-4">
+              {media.transcriptionStatus === "completed" && media.transcriptionText && (
+                <>
+                  <TranscriptionReference tab="translation" />
+                  
+                  <Card>
+                    <CardHeader className="bg-gradient-to-r from-gray-50/80 to-white dark:from-gray-900/80 dark:to-gray-950 pb-3">
+                      <CardTitle className="bg-gradient-to-r from-gray-800 to-gray-700 bg-clip-text text-transparent dark:from-gray-200 dark:to-white">Translation</CardTitle>
+                      <CardDescription className="text-gray-600 dark:text-gray-400">
+                        Translate the transcription to another language
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900/90 pt-4">
+                      <TranslationPanel
+                        mediaId={media._id}
+                        detectedLanguage={media.detectedLanguage}
+                        translations={media.translations}
+                      />
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 pt-4 border-t border-gray-100 dark:border-gray-800 -mx-6 px-6">
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            className="bg-gradient-to-r from-gray-50 to-white hover:from-red-50 hover:to-red-50 dark:from-gray-900 dark:to-gray-950 dark:hover:from-red-950/30 dark:hover:to-red-950/30 transition-all duration-300 border-gray-200 dark:border-gray-800"
+          >
             Close
           </Button>
         </DialogFooter>

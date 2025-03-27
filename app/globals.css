@@ -160,3 +160,75 @@
 .progress-upload-pulse {
   animation: progressPulse 1.5s infinite ease-in-out;
 }
+
+/* Additional animations for enhanced UI */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-subtle {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.4s ease-out forwards;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s infinite;
+}
+
+/* Staggered animations for list items */
+.stagger-item {
+  opacity: 0;
+}
+
+.stagger-item:nth-child(1) { animation: slide-up 0.4s 0.1s ease-out forwards; }
+.stagger-item:nth-child(2) { animation: slide-up 0.4s 0.2s ease-out forwards; }
+.stagger-item:nth-child(3) { animation: slide-up 0.4s 0.3s ease-out forwards; }
+.stagger-item:nth-child(4) { animation: slide-up 0.4s 0.4s ease-out forwards; }
+.stagger-item:nth-child(5) { animation: slide-up 0.4s 0.5s ease-out forwards; }
+.stagger-item:nth-child(n+6) { animation: slide-up 0.4s 0.6s ease-out forwards; }

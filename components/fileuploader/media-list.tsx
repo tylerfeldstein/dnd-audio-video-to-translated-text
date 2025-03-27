@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { ConvexReactClient } from "convex/react";
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import React from "react";
 import { MediaDialog } from "./media-dialog";
+import { motion } from "framer-motion";
+import { FileAudio, FileVideo, Loader2, ArrowDown01, ArrowUp10, Calendar, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 // Initialize the Convex client
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -36,18 +40,22 @@ export const MediaList = ({ userId }: MediaListProps) => {
   const [mediaFiles, setMediaFiles] = useState<Media[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'audio' | 'video'>('all');
+  
   // Fetch media files on component mount
   useEffect(() => {
     const fetchMediaFiles = async () => {
       try {
         setIsLoading(true);
         const data = await convex.query(api.media.getAllMedia, { userId });
-        // Sort media by creation time in descending order (newest first)
-        const sortedMedia = [...data as Media[]].sort((a, b) => b._creationTime - a._creationTime);
+        // Sort media by creation time
+        const sortedMedia = [...data as Media[]].sort((a, b) => 
+          sortDirection === 'desc' ? b._creationTime - a._creationTime : a._creationTime - b._creationTime
+        );
         setMediaFiles(sortedMedia);
       } catch (err) {
         console.error("Error fetching media files:", err);
@@ -65,8 +73,10 @@ export const MediaList = ({ userId }: MediaListProps) => {
       if (!isDialogOpen) {
         convex.query(api.media.getAllMedia, { userId })
           .then(data => {
-            // Sort media by creation time in descending order (newest first)
-            const sortedMedia = [...data as Media[]].sort((a, b) => b._creationTime - a._creationTime);
+            // Sort media by creation time
+            const sortedMedia = [...data as Media[]].sort((a, b) => 
+              sortDirection === 'desc' ? b._creationTime - a._creationTime : a._creationTime - b._creationTime
+            );
             setMediaFiles(sortedMedia);
           })
           .catch(err => {
@@ -79,17 +89,19 @@ export const MediaList = ({ userId }: MediaListProps) => {
     return () => {
       clearInterval(pollInterval);
     };
-  }, [userId, isDialogOpen]);
+  }, [userId, isDialogOpen, sortDirection]);
 
-  const toggleExpand = (id: string) => {
-    const newExpandedIds = new Set(expandedIds);
-    if (newExpandedIds.has(id)) {
-      newExpandedIds.delete(id);
-    } else {
-      newExpandedIds.add(id);
-    }
-    setExpandedIds(newExpandedIds);
-  };
+  // Filter and search media files
+  const filteredMediaFiles = mediaFiles.filter(media => {
+    // Apply type filter
+    if (filterType === 'audio' && !media.mimeType.includes('audio')) return false;
+    if (filterType === 'video' && !media.mimeType.includes('video')) return false;
+    
+    // Apply search term
+    if (searchTerm && !media.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    
+    return true;
+  });
 
   const handleRowClick = (media: Media) => {
     setSelectedMedia(media);
@@ -101,16 +113,67 @@ export const MediaList = ({ userId }: MediaListProps) => {
     setSelectedMedia(null);
   };
 
+  const toggleSort = () => {
+    setSortDirection(prev => prev === 'desc' ? 'asc' : 'desc');
+  };
+
   if (isLoading) {
-    return <div className="text-center py-8">Loading media files...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="w-16 h-16 mb-4 flex items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30"
+        >
+          <Loader2 className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-spin" />
+        </motion.div>
+        <motion.p 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.3 }}
+          className="text-lg text-gray-700 dark:text-gray-300"
+        >
+          Loading your media files...
+        </motion.p>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-red-500 text-center py-8">{error}</div>;
+    return (
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center py-8"
+      >
+        <div className="inline-block p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300">
+          {error}
+        </div>
+      </motion.div>
+    );
   }
 
   if (mediaFiles.length === 0) {
-    return <div className="text-center py-8 text-gray-500">No media files uploaded yet</div>;
+    return (
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center py-16"
+      >
+        <div className="inline-block p-6 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+              <FileAudio className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+            </div>
+            <h3 className="text-xl font-medium text-gray-800 dark:text-gray-200 mb-2">No media files yet</h3>
+            <p className="text-gray-500 dark:text-gray-400 max-w-md">
+              Upload your first audio or video file to get started with transcription
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    );
   }
 
   const formatFileSize = (bytes: number) => {
@@ -157,214 +220,205 @@ export const MediaList = ({ userId }: MediaListProps) => {
     }
   };
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
   return (
     <>
-      <Card className="w-full mx-auto">
-        <div className="p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Your Media Files</h2>
-          </div>
-          <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8">
-            <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-              <div className="overflow-hidden border border-gray-200 dark:border-gray-700 sm:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                      <th
-                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                        scope="col"
-                      >
-                        Name
-                      </th>
-                      <th
-                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                        scope="col"
-                      >
-                        Type
-                      </th>
-                      <th
-                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                        scope="col"
-                      >
-                        Uploaded
-                      </th>
-                      <th
-                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                        scope="col"
-                      >
-                        Size
-                      </th>
-                      <th
-                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                        scope="col"
-                      >
-                        Transcription
-                      </th>
-                      <th
-                        className="px-6 py-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                        scope="col"
-                      >
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                    {mediaFiles.map((media) => (
-                      <React.Fragment key={media._id.toString()}>
-                        <tr
-                          className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                          onClick={() => handleRowClick(media)}
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-3">
-                              <div className="w-6 h-6 text-blue-500">
-                                {media.mimeType.includes('audio') ? (
-                                  <svg 
-                                    xmlns="http://www.w3.org/2000/svg" 
-                                    width="24" 
-                                    height="24" 
-                                    viewBox="0 0 24 24" 
-                                    fill="none" 
-                                    stroke="currentColor" 
-                                    strokeWidth="2" 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round"
-                                  >
-                                    <path d="m14.5 2-6 6H3v8h5.5l6 6V2Z"/>
-                                    <path d="M20 10c0 5-7 5-7 0"/>
-                                  </svg>
-                                ) : (
-                                  <svg 
-                                    xmlns="http://www.w3.org/2000/svg" 
-                                    width="24" 
-                                    height="24" 
-                                    viewBox="0 0 24 24" 
-                                    fill="none" 
-                                    stroke="currentColor" 
-                                    strokeWidth="2" 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round"
-                                  >
-                                    <path d="M12 2c-4.4 0-8 3.6-8 8v10c0 .6.4 1 1 1h5v-5h4v5h5c.6 0 1-.4 1-1V10c0-4.4-3.6-8-8-8z"/>
-                                    <path d="M10 18v-5h4v5"/>
-                                  </svg>
-                                )}
-                              </div>
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {media.name}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                              {media.mimeType.split('/')[0]}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                              {formatDate(media._creationTime)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                              {formatFileSize(media.size)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {getStatusBadge(media.transcriptionStatus)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <div className="flex justify-end space-x-2">
-                              {media.fileUrl && (
-                                <button
-                                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(media.fileUrl, "_blank");
-                                  }}
-                                  title="Play/Download Media"
-                                >
-                                  <svg
-                                    className="w-5 h-5"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  >
-                                    <polygon points="5 3 19 12 5 21 5 3" />
-                                  </svg>
-                                </button>
-                              )}
-                              {media.transcriptionStatus === "completed" && (
-                                <button
-                                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleExpand(media._id.toString());
-                                  }}
-                                  title="View Transcription"
-                                >
-                                  <svg
-                                    className="w-5 h-5"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  >
-                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                  </svg>
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                        {expandedIds.has(media._id.toString()) && media.transcriptionText && (
-                          <tr onClick={(e) => e.stopPropagation()}>
-                            <td colSpan={6} className="px-6 py-4 bg-gray-50 dark:bg-gray-800">
-                              <div className="p-4 bg-white dark:bg-gray-900 rounded shadow border border-gray-200 dark:border-gray-700">
-                                <h3 className="text-lg font-semibold mb-2">Transcription</h3>
-                                <div className="max-h-60 overflow-y-auto prose dark:prose-invert">
-                                  <p className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
-                                    {media.transcriptionText}
-                                  </p>
-                                </div>
-                                <div className="flex justify-end mt-4">
-                                  <button 
-                                    className="px-3 py-1 text-xs text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                                    onClick={() => {
-                                      if (media.transcriptionText) {
-                                        navigator.clipboard.writeText(media.transcriptionText);
-                                      }
-                                    }}
-                                  >
-                                    Copy to Clipboard
-                                  </button>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </tbody>
-                </table>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="w-full mx-auto border-gray-200 dark:border-gray-800 shadow-md bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900 overflow-hidden">
+          <CardHeader className="pb-3 bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <CardTitle className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-800 bg-clip-text text-transparent dark:from-white dark:to-gray-200">
+                Your Media Files
+              </CardTitle>
+              
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  <Input
+                    type="text"
+                    placeholder="Search files..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 h-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 w-full sm:w-[200px]"
+                  />
+                </div>
+                
+                <div className="flex gap-2 self-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`px-3 h-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 ${filterType === 'all' ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-400'}`}
+                    onClick={() => setFilterType('all')}
+                  >
+                    All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`px-3 h-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 ${filterType === 'audio' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'}`}
+                    onClick={() => setFilterType('audio')}
+                  >
+                    <FileAudio className="h-3.5 w-3.5 mr-1" />
+                    Audio
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`px-3 h-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 ${filterType === 'video' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'text-gray-600 dark:text-gray-400'}`}
+                    onClick={() => setFilterType('video')}
+                  >
+                    <FileVideo className="h-3.5 w-3.5 mr-1" />
+                    Video
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </Card>
+          </CardHeader>
+          
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full divide-y divide-gray-200 dark:divide-gray-800">
+                <thead className="bg-gray-50 dark:bg-gray-900">
+                  <tr>
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                      scope="col"
+                    >
+                      Name
+                    </th>
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                      scope="col"
+                    >
+                      Type
+                    </th>
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors duration-200"
+                      scope="col"
+                      onClick={toggleSort}
+                    >
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>Uploaded</span>
+                        {sortDirection === 'desc' ? 
+                          <ArrowDown01 className="h-3.5 w-3.5 ml-1" /> : 
+                          <ArrowUp10 className="h-3.5 w-3.5 ml-1" />
+                        }
+                      </div>
+                    </th>
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                      scope="col"
+                    >
+                      Size
+                    </th>
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                      scope="col"
+                    >
+                      Transcription
+                    </th>
+                  </tr>
+                </thead>
+                
+                <motion.tbody
+                  className="bg-white dark:bg-gray-950 divide-y divide-gray-100 dark:divide-gray-800"
+                  variants={container}
+                  initial="hidden"
+                  animate="show"
+                >
+                  {filteredMediaFiles.map((media) => (
+                    <motion.tr
+                      key={media._id.toString()}
+                      variants={item}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer group"
+                      onClick={() => handleRowClick(media)}
+                      whileHover={{ scale: 1.005 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 flex items-center justify-center rounded-full ${
+                            media.mimeType.includes('audio') 
+                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
+                              : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+                          }`}>
+                            {media.mimeType.includes('audio') ? (
+                              <FileAudio className="h-4 w-4" />
+                            ) : (
+                              <FileVideo className="h-4 w-4" />
+                            )}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">
+                              {media.name}
+                            </span>
+                            {media.duration && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {formatDuration(media.duration)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">{media.mimeType}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">{formatDate(media._creationTime)}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">{formatFileSize(media.size)}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(media.transcriptionStatus)}
+                      </td>
+                    </motion.tr>
+                  ))}
+                </motion.tbody>
+              </table>
+              
+              {filteredMediaFiles.length === 0 && (
+                <div className="py-12 text-center text-gray-500 dark:text-gray-400 italic">
+                  No files match your search criteria
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
-      <MediaDialog 
-        media={selectedMedia} 
-        isOpen={isDialogOpen} 
-        onClose={handleCloseDialog} 
+      <MediaDialog
+        media={selectedMedia}
+        isOpen={isDialogOpen}
+        onClose={handleCloseDialog}
       />
     </>
   );
+};
+
+// Helper function to format duration
+const formatDuration = (seconds?: number) => {
+  if (!seconds) return "Unknown";
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 }; 
