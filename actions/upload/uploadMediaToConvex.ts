@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { triggerMediaTranscription } from "@/inngest/functions/transcribe";
 
-const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
 
 interface UploadChunkResult {
   success: boolean;
@@ -13,17 +13,27 @@ interface UploadChunkResult {
   error?: string;
 }
 
+interface UploadConfig {
+  useChunking?: boolean;
+  chunkSize?: number;
+}
+
 /**
  * Helper function to upload a file in chunks
  */
 async function uploadFileInChunks(
   file: File,
-  convex: ConvexHttpClient
+  convex: ConvexHttpClient,
+  config: UploadConfig = {}
 ): Promise<UploadChunkResult> {
+  // Set default config values
+  const useChunking = config.useChunking !== undefined ? config.useChunking : true;
+  const chunkSize = config.chunkSize || DEFAULT_CHUNK_SIZE;
+  
   try {
-    // For small files (< 5MB), use the regular upload method
-    if (file.size <= CHUNK_SIZE) {
-      console.log(`Uploading small file (${file.size} bytes) directly`);
+    // For small files or if chunking is disabled, use the regular upload method
+    if (!useChunking || file.size <= chunkSize) {
+      console.log(`Uploading file (${file.size} bytes) directly, chunking ${useChunking ? 'enabled' : 'disabled'}`);
       const uploadUrl = await convex.mutation(api.files.generateUploadUrl, {});
       
       const uploadResult = await fetch(uploadUrl, {
@@ -43,12 +53,12 @@ async function uploadFileInChunks(
       };
     }
     
-    // For larger files, implement chunked uploads
-    console.log(`Uploading large file (${file.size} bytes) in chunks of ${CHUNK_SIZE} bytes`);
+    // For larger files with chunking enabled, implement chunked uploads
+    console.log(`Uploading large file (${file.size} bytes) in chunks of ${chunkSize} bytes`);
     
     // 1. Initialize the chunked upload
     const initResult = await convex.mutation(api.files.initMultipartUpload, { 
-      numChunks: Math.ceil(file.size / CHUNK_SIZE) 
+      numChunks: Math.ceil(file.size / chunkSize) 
     });
     
     if (!initResult.success || !initResult.uploadId) {
@@ -59,12 +69,12 @@ async function uploadFileInChunks(
     console.log(`Multipart upload initialized with ID: ${uploadId}`);
     
     // 2. Upload each chunk
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const totalChunks = Math.ceil(file.size / chunkSize);
     let finalStorageId: Id<"_storage"> | undefined;
     
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-      const start = chunkIndex * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, file.size);
+      const start = chunkIndex * chunkSize;
+      const end = Math.min(start + chunkSize, file.size);
       const chunk = file.slice(start, end);
       
       // Retry mechanism for chunk uploads
@@ -165,6 +175,17 @@ export async function uploadMediaToConvex(formData: FormData) {
     // Get the file and userId from the formData
     const file = formData.get("file") as File;
     const userId = formData.get("userId") as string;
+    
+    // Get chunking options from the formData
+    const useChunking = formData.get("useChunking") === "true";
+    const chunkSizeStr = formData.get("chunkSize") as string;
+    const chunkSize = chunkSizeStr ? parseInt(chunkSizeStr, 10) : undefined;
+
+    // Create the upload config
+    const uploadConfig: UploadConfig = {
+      useChunking,
+      chunkSize
+    };
 
     if (!file) {
       throw new Error("No file provided");
@@ -177,9 +198,10 @@ export async function uploadMediaToConvex(formData: FormData) {
     }
 
     console.log(`Starting upload for file: ${file.name}, size: ${file.size} bytes, type: ${file.type}`);
+    console.log(`Upload config: useChunking=${useChunking}, chunkSize=${chunkSize || DEFAULT_CHUNK_SIZE} bytes`);
     
-    // Upload the file using the chunked upload method
-    const uploadResult = await uploadFileInChunks(file, convex);
+    // Upload the file using the chunked upload method with the provided config
+    const uploadResult = await uploadFileInChunks(file, convex, uploadConfig);
     
     if (!uploadResult.success || !uploadResult.storageId) {
       throw new Error(`Failed to upload file: ${uploadResult.error || "Unknown error"}`);

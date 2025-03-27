@@ -593,3 +593,36 @@ export const getFileUrl = query({
     return await ctx.storage.getUrl(args.storageId);
   },
 });
+
+/**
+ * Get multipart upload information by storage ID
+ */
+export const getMultipartUploadByStorageId = query({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("multipartUploads"),
+      _creationTime: v.number(),
+      uploadId: v.string(),
+      numChunks: v.number(),
+      uploadedChunks: v.number(),
+      isComplete: v.boolean(),
+      createdAt: v.number(),
+      completedAt: v.optional(v.number()),
+      storageId: v.optional(v.id("_storage")),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    // Find the multipart upload with this storage ID
+    const uploads = await ctx.db
+      .query("multipartUploads")
+      .filter(q => q.eq(q.field("storageId"), args.storageId))
+      .collect();
+    
+    // Return the first one if any exist
+    return uploads.length > 0 ? uploads[0] : null;
+  },
+});

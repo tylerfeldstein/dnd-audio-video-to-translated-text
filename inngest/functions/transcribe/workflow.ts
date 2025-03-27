@@ -201,11 +201,66 @@ export const mediaTranscriptionWorkflow = inngest.createFunction(
         const tempFilePath = path.join(outputDir, `${randomUUID()}${fileExtension}`);
         console.log("Downloading file to:", tempFilePath);
         
-        const response = await fetch(fileUrl);
-        const buffer = await response.arrayBuffer();
-        fs.writeFileSync(tempFilePath, Buffer.from(buffer));
+        // Check if we need to handle a multipart uploaded file
+        // Get info about the storage ID to see if it's a multipart upload
+        const uploads = await convexClient.query(api.files.getMultipartUploadByStorageId, {
+          storageId: storageId as Id<"_storage">
+        });
         
-        console.log("File downloaded successfully, size:", buffer.byteLength);
+        if (uploads && uploads.isComplete) {
+          console.log(`File is a multipart upload with ${uploads.numChunks} chunks`);
+          
+          // Get the file stream instead of using fetch for better memory handling
+          const response = await fetch(fileUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to download file: ${response.statusText}`);
+          }
+          
+          // Create a write stream for the output file
+          const fileStream = fs.createWriteStream(tempFilePath);
+          
+          if (response.body) {
+            // Use the web streams API to pipe the response to the file
+            const reader = response.body.getReader();
+            
+            console.log("Streaming file download to disk...");
+            
+            let bytesReceived = 0;
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              
+              // Write chunk to file
+              fileStream.write(Buffer.from(value));
+              
+              bytesReceived += value.length;
+              console.log(`Downloaded ${bytesReceived} bytes so far...`);
+            }
+            
+            // Close the stream
+            fileStream.end();
+            
+            console.log(`File download complete, total size: ${bytesReceived} bytes`);
+          } else {
+            // Fallback to the buffer method if streaming doesn't work
+            const buffer = await response.arrayBuffer();
+            fs.writeFileSync(tempFilePath, Buffer.from(buffer));
+            console.log(`File downloaded with fallback method, size: ${buffer.byteLength}`);
+          }
+        } else {
+          // Standard download for regular files
+          console.log("File is a standard upload, downloading directly");
+          const response = await fetch(fileUrl);
+          const buffer = await response.arrayBuffer();
+          fs.writeFileSync(tempFilePath, Buffer.from(buffer));
+          console.log("File downloaded successfully, size:", buffer.byteLength);
+        }
+        
+        // Verify the file was downloaded correctly
+        if (!fs.existsSync(tempFilePath) || fs.statSync(tempFilePath).size === 0) {
+          throw new Error(`File download failed or file is empty: ${tempFilePath}`);
+        }
+        
         filesToCleanup.push(tempFilePath);
         return tempFilePath;
       });
@@ -609,11 +664,66 @@ export const pythonTranscriptionFallback = inngest.createFunction(
           const newFilePath = path.join(outputDir, `fallback-${randomUUID()}${fileExtension}`);
           console.log("Downloading file to:", newFilePath);
           
-          const response = await fetch(fileUrl);
-          const buffer = await response.arrayBuffer();
-          fs.writeFileSync(newFilePath, Buffer.from(buffer));
+          // Check if we need to handle a multipart uploaded file
+          const uploads = await convexClient.query(api.files.getMultipartUploadByStorageId, {
+            storageId: storageId as Id<"_storage">
+          });
           
-          console.log("File downloaded successfully, size:", buffer.byteLength);
+          if (uploads && uploads.isComplete) {
+            console.log(`File is a multipart upload with ${uploads.numChunks} chunks`);
+            
+            // Get the file stream instead of using fetch for better memory handling
+            const response = await fetch(fileUrl);
+            if (!response.ok) {
+              throw new Error(`Failed to download file: ${response.statusText}`);
+            }
+            
+            // Create a write stream for the output file
+            const fileStream = fs.createWriteStream(newFilePath);
+            
+            if (response.body) {
+              // Use the web streams API to pipe the response to the file
+              const reader = response.body.getReader();
+              
+              console.log("Streaming file download to disk...");
+              
+              let bytesReceived = 0;
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                // Write chunk to file
+                fileStream.write(Buffer.from(value));
+                
+                bytesReceived += value.length;
+                console.log(`Downloaded ${bytesReceived} bytes so far...`);
+              }
+              
+              // Close the stream
+              fileStream.end();
+              
+              console.log(`File download complete, total size: ${bytesReceived} bytes`);
+            } else {
+              // Fallback to the buffer method if streaming doesn't work
+              const response = await fetch(fileUrl);
+              const buffer = await response.arrayBuffer();
+              fs.writeFileSync(newFilePath, Buffer.from(buffer));
+              console.log(`File downloaded with fallback method, size: ${buffer.byteLength}`);
+            }
+          } else {
+            // Standard download for regular files
+            console.log("File is a standard upload, downloading directly");
+            const response = await fetch(fileUrl);
+            const buffer = await response.arrayBuffer();
+            fs.writeFileSync(newFilePath, Buffer.from(buffer));
+            console.log("File downloaded successfully, size:", buffer.byteLength);
+          }
+          
+          // Verify the file was downloaded correctly
+          if (!fs.existsSync(newFilePath) || fs.statSync(newFilePath).size === 0) {
+            throw new Error(`File download failed or file is empty: ${newFilePath}`);
+          }
+          
           filesToCleanup.push(newFilePath);
           return newFilePath;
         });
