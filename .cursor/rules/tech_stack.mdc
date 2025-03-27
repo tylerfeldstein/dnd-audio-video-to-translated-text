@@ -3,58 +3,103 @@ description: Tech Stack
 globs: 
 alwaysApply: false
 ---
-# 🛠 Tech Stack
+# AI Agent Coding Guidelines - Next.js 15, Convex, Clerk
 
-- **Framework:** Next.js 15 (App Router)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS
-- **UI Kit:** Shadcn
-- **Components:** Shadcn (when needed)
+## 1. Core Principles & Tech Stack
 
----
+* **Role:** You are an expert AI coding assistant specializing in generating high-quality, production-ready code.
+* **Tech Stack:** TypeScript, Node.js, Next.js 15 (App Router), React, Convex (Database), Clerk (Authentication), Server Actions, Shadcn UI, Tailwind CSS, Framer Motion.
+* **Goals:** Prioritize performance (especially RSCs, Web Vitals), maintainability, readability, security, real-time data updates where appropriate, and adherence to Next.js 15, Convex, and Clerk best practices.
 
-## 🗂 Folder Structure
+## 2. Project Structure & Naming Conventions
 
-### Components
+* **Root Structure:**
+    * `/app`: Contains all routes, layouts, pages, and route-specific components (`_components`).
+    * `/components`: Root directory for shared/reusable UI components. Organize logically by feature or domain (e.g., `/components/auth`, `/components/feed`, `/components/ui`).
+    * `/actions`: Root directory for Next.js Server Actions. Organize logically, often mirroring feature domains (e.g., `/actions/auth-actions.ts`, `/actions/post-actions.ts`).
+    * `/convex`: Contains Convex schema, query, mutation, and action definitions (Managed by Convex tooling).
+    * `middleware.ts`: Clerk authentication middleware file at the project root.
+    * *(No `/src` directory is used)*.
+* **Directory & File Naming:** Use `lowercase-with-dashes` (kebab-case) for all directory names (`/components/user-profile`) and file names (`user-profile.tsx`, `auth-actions.ts`).
+* **Component Naming:** React component names **must** use `PascalCase` (e.g., `UserProfile`, `SignInForm`).
+* **Variable, Function & Prop Naming:** Variables, function names (excluding React components), object properties, and interface/type properties **must** use `camelCase` (e.g., `const userId = ...`, `async function getUserData() {}`, `interface UserProfileProps { isActive: boolean; userEmail: string; }`).
+* **Exports:** Favor named exports for components, actions, types, and modules. Avoid default exports.
 
-- All UI components live in `/components`
-- Organize by **feature or domain**
-  - E.g., `/components/auth/LoginForm.tsx`
-- Keep components **small, focused**, and **reusable**
-- Prefer composition over configuration
+## 3. Code Style & Structure
 
-### Actions
+* **Language:** Use TypeScript exclusively.
+* **Programming Paradigm:** Employ functional and declarative programming patterns. Avoid ES6 classes.
+* **Conciseness & Clarity:** Write concise, idiomatic TypeScript. Prioritize readability.
+* **Modularity:** Prefer composition and modular functions. Break down complex components and server actions.
+* **File Internal Structure (Components/Actions):**
+    1.  Imports (React, Next.js, Clerk, Convex, libs, local modules)
+    2.  Type/Interface definitions (using `camelCase` for properties)
+    3.  Constants
+    4.  Helper functions (`camelCase`)
+    5.  Main exported component (`PascalCase`) / Server Action(s) (`camelCase`)
+    6.  Sub-components (`PascalCase`) / Internal action helpers (`camelCase`)
+* **Comments:** Use JSDoc comments (`/** ... */`) for exported items and complex logic. Explain *why*, not just *what*.
 
-- All logic lives in `/actions`
-- Use **Server Actions** for backend logic
-- Organize by **domain**
-  - E.g., `/actions/user/updateUser.ts`
-- No API routes unless integrating external services
+## 4. TypeScript Usage
 
----
+* **Strictness:** Enable and adhere to strict TypeScript settings.
+* **Types vs. Interfaces:** Generally prefer `interface` for object shapes (component props, data structures). Use `type` for unions, intersections, utility types. Property names use `camelCase`.
+* **Enums:** Avoid traditional `enum`s. Use object literals with `as const` for type-safe constants.
+* **Component Typing:** Use functional components (`React.FC` or `const Comp = (...) => ...`) with explicit `PascalCase` names and `camelCase` prop names defined via interfaces.
+* **Convex & Clerk Types:** Leverage generated types from Convex and types provided by Clerk (`@clerk/nextjs`) for end-to-end type safety.
 
-## 📏 Rules
+## 5. Syntax & Formatting
 
-- Group related components and actions into **logical folders**
-- Use **TypeScript** strictly — no `any` unless unavoidable
-- Use **Tailwind** for all styling — no external CSS files
-- Stick to **Shadcn** components when possible
-- Avoid large files — break up if over ~100 lines
-- Keep functions **pure and focused** — 1 responsibility per file
+* **Function Definition:** Use arrow functions (`const MyComponent = (...) => {...}`) for component definitions. Use `async function myAction(...) {...}` marked with `'use server';` for Server Actions. Use `camelCase` for function names (except components).
+* **Conditionals:** Use clear conditional logic. Ternaries are acceptable for simple JSX cases.
+* **JSX:** Write clean, declarative JSX. Use `PascalCase` for component tags.
+* **Linting/Formatting:** Assume ESLint and Prettier are configured. Adhere strictly to the established rules.
 
----
+## 6. UI & Styling
 
-## 📁 Examples
+* **Component Library:** Utilize **Shadcn UI** components.
+* **Styling:** Use **Tailwind CSS** for all styling.
+* **Animation:** Implement animations using **Framer Motion**.
+* **Responsiveness:** Employ a mobile-first approach using Tailwind's responsive modifiers.
+* **Accessibility (a11y):** Build accessible interfaces.
 
-```
-/components/
-  └── auth/
-      ├── LoginForm.tsx
-      └── SignupForm.tsx
+## 7. Authentication (Clerk)
 
-/actions/
-  └── user/
-      ├── getUser.ts
-      └── updateUser.ts
-```
+* **Middleware:** Implement route protection using Clerk's `authMiddleware` in `middleware.ts`. Configure `publicRoutes` and `ignoredRoutes` as needed. This handles authentication checks globally.
+* **Accessing Auth State/User:**
+    * **Server (RSCs, Server Actions, Route Handlers):** Use `auth()` from `@clerk/nextjs/server` to get session state like `userId` and `orgId`. Use `currentUser()` from `@clerk/nextjs/server` ONLY if you need the full user profile details fetched from Clerk's API server-side. Prefer passing only necessary IDs (like `userId`) to data functions.
+    * **Client Components:** Use hooks like `useAuth()` (for `userId`, `isSignedIn`) and `useUser()` (for user object details) from `@clerk/nextjs`. Only use `useUser` if user profile details are needed client-side.
+* **UI Components:** Leverage Clerk's pre-built components (`<SignInButton>`, `<UserButton>`, `<SignUp>`, `<SignIn>`, `<SignedIn>`, `<SignedOut>`, etc.) for common authentication UI patterns. Wrap your application layout with `<ClerkProvider>`.
 
+## 8. Data Fetching, Mutations & State (Convex & Server Actions)
+
+* **Primary Data Source:** **Convex**.
+* **Authorization:** Convex functions (queries, mutations, actions) should perform authorization checks, typically using the authenticated user's ID passed from the calling context (Server Action or client).
+* **Data Fetching (Queries):**
+    * **Server Components (RSC - Default Cache Behavior):** Fetch data within RSCs using the **Convex server client**. Pass necessary identifiers (like `userId` obtained via `auth()`) to your Convex queries for authorization and data filtering. **This is the preferred default.**
+    * **Client Components (Real-time):** For views needing **real-time updates**, use Convex hooks (e.g., `useQuery`) within Client Components (`'use client'`). These hooks typically handle passing authentication automatically if configured correctly with Clerk & Convex.
+    * **Caching Strategy:** Default to server-fetched, cached data via RSCs. Use `useQuery` in Client Components specifically for real-time needs.
+* **Mutations & Server Logic:**
+    * Use **Next.js Server Actions** (`/actions`) triggered from the UI.
+    * Inside Server Actions, **first obtain the `userId` using `auth()`** from `@clerk/nextjs/server`. If the user is not authenticated, throw an error or return an appropriate response.
+    * Call corresponding **Convex `mutation` or `action` functions**, passing the authenticated `userId` and other necessary data for authorization and the operation itself.
+    * Handle potential errors from both `auth()` and Convex calls within the Server Action.
+* **State Management:**
+    * Use **`nuqs`** for URL search parameter state.
+    * Minimize client-side state. Rely on RSCs, Server Actions (use `useActionState` for form status), URL state, Clerk's auth state, and Convex's real-time capabilities.
+
+## 9. Performance Optimization & Next.js Practices
+
+* **React Server Components (RSC):** Maximize RSC usage.
+* **Minimize Client Components (`'use client'`):** Use only for interactivity, client-side hooks (Clerk's `useAuth`/`useUser`, Convex's `useQuery`), or browser APIs.
+* **Suspense:** Wrap components using client hooks (`useQuery`, `useUser`) or triggering Server Actions with appropriate `fallback` UI.
+* **Server Actions:** Keep focused; handle auth check first, then delegate logic to Convex.
+* **Dynamic Loading:** Use `next/dynamic` for non-critical components/libraries.
+* **Image Optimization:** Use `next/image` with `width`, `height`.
+* **Web Vitals:** Monitor and optimize LCP, CLS, INP.
+
+## 10. Miscellaneous
+
+* **Error Handling:** Implement robust error handling (Next.js `error.tsx`, Server Action try/catch, Convex errors, Clerk auth errors).
+* **Environment Variables:** Use Next.js standard env vars. Include Clerk (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`) and Convex (`NEXT_PUBLIC_CONVEX_URL`, `CONVEX_DEPLOYMENT`) variables. Use `NEXT_PUBLIC_` prefix *only* for browser-exposed variables.
+* **Placeholder Images:** Use `https://placekitten.com/` for placeholders.
