@@ -57,18 +57,25 @@ export const MediaList = ({ userId }: MediaListProps) => {
 
     fetchMediaFiles();
 
-    // Don't auto-refresh while dialog is open to prevent playback interruption
-    let intervalId: NodeJS.Timeout | undefined;
-    if (!isDialogOpen) {
-      // Set up an interval to refresh the list every 10 seconds only when dialog is closed
-      intervalId = setInterval(fetchMediaFiles, 10000);
-    }
+    // Set up polling that doesn't cause page refresh
+    const pollInterval = setInterval(() => {
+      // Only poll if the dialog is not open to prevent playback interruption
+      if (!isDialogOpen) {
+        convex.query(api.media.getAllMedia, { userId })
+          .then(data => {
+            setMediaFiles(data as Media[]);
+          })
+          .catch(err => {
+            console.error("Error polling media files:", err);
+          });
+      }
+    }, 10000);
 
     // Clean up interval on component unmount
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      clearInterval(pollInterval);
     };
-  }, [userId, isDialogOpen]); // Add isDialogOpen to the dependency array
+  }, [userId, isDialogOpen]);
 
   const toggleExpand = (id: string) => {
     const newExpandedIds = new Set(expandedIds);

@@ -162,11 +162,6 @@ export const FileUploader = ({
             stage: "completed",
             progress: 100
           });
-
-          // Refresh the list after a short delay
-          window.setTimeout(() => {
-            window.location.reload();
-          }, 2000);
         } else {
           setUploadStatus({
             success: false,
