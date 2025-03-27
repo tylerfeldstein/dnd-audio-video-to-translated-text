@@ -109,6 +109,9 @@ export function GrammarCheckPanel({ text = "", label, language }: GrammarCheckPa
       
       toast.error(`Grammar check failed: ${grammarCheck.error}`);
       setIsChecking(false);
+    } else if (grammarCheck.status === "processing" && toastId) {
+      // Update the processing toast to ensure it's showing the right message
+      toast.loading("Processing grammar check...", { id: toastId });
     }
   }, [grammarCheck, jobId]);
 
