@@ -8,7 +8,7 @@ export default async function AboutPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1>PDF Processor</h1>
+      <h1 className="text-3xl font-bold text-center">PDF Processor</h1>
       <p className="text-center text-gray-600 dark:text-gray-400 mt-2 mb-8">
         Upload your PDF files to view and share them
       </p>

@@ -64,13 +64,14 @@ export default defineSchema({
     isComplete: v.boolean(),
     createdAt: v.number(),
     completedAt: v.optional(v.number()),
+    storageId: v.optional(v.id("_storage")),
   }).index("by_uploadId", ["uploadId"]),
   
   // Table to track individual chunks in a multipart upload
   multipartChunks: defineTable({
     uploadId: v.string(),
     chunkIndex: v.number(),
-    chunkKey: v.string(), // This will be the storage ID for this chunk
+    storageId: v.optional(v.id("_storage")),
     uploadedAt: v.number(),
   }).index("by_uploadId", ["uploadId"]),
 });

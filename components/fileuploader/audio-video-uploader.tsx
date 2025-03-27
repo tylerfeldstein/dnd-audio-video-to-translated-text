@@ -113,33 +113,41 @@ export const FileUploader = ({
           formData.append("userId", actualUserId);
 
           try {
-            // Update status to uploading
+            // Update status to uploading with file size info
+            const isLargeFile = file.size > 5 * 1024 * 1024;
             setUploadStatus({
               isUploading: true,
-              progress: 10,
+              progress: 0,
               stage: "uploading",
-              message: `Uploading ${file.name}...`
+              message: `Uploading ${file.name}${isLargeFile ? ' in chunks' : ''}... (${(file.size / (1024 * 1024)).toFixed(2)} MB)`
             });
 
-            // Simulate progress during upload
-            const progressInterval = setInterval(() => {
-              setUploadStatus(status => ({
-                ...status,
-                progress: (status.progress || 10) + 5 < 80 ? (status.progress || 10) + 5 : (status.progress || 10)
-              }));
-            }, 1000);
-
+            // Start the upload
             const result = await uploadMediaToConvex(formData);
-
-            // Clear the progress interval
-            clearInterval(progressInterval);
 
             if (result.success) {
               uploadedFiles.push(file.name);
+              
+              // Show complete status
+              setUploadStatus({
+                isUploading: false,
+                progress: 100,
+                stage: "completed",
+                message: `${file.name} uploaded successfully!`
+              });
             }
           } catch (fileError) {
             console.error("Error uploading file:", fileError);
-            // Continue with other files even if one fails
+            // Show error status
+            setUploadStatus({
+              isUploading: false,
+              progress: 0,
+              stage: "error",
+              message: fileError instanceof Error ? fileError.message : "Upload failed"
+            });
+            
+            // Wait a moment to show the error
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
         }
 
@@ -177,7 +185,7 @@ export const FileUploader = ({
         setIsUploading(false);
       }
     },
-    [onFilesSelected, actualUserId]
+    [onFilesSelected, actualUserId, validateFiles]
   );
 
   const handleDrop = useCallback(
@@ -311,6 +319,9 @@ export const FileUploader = ({
           <p className="text-xs text-gray-500 dark:text-gray-400">
             Audio files (MP3, WAV, etc.) and video files (MP4, MOV, etc.) are supported
           </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Large files ({'>'}5MB) will be uploaded in chunks for better reliability
+          </p>
         </div>
       </div>
 
@@ -331,10 +342,15 @@ export const FileUploader = ({
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
                 <div 
-                  className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 dark:bg-indigo-500" 
-                  style={{ width: `${uploadStatus.progress || 0}%` }}
+                  className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 dark:bg-indigo-500 progress-upload-pulse" 
+                  style={{ width: '30%' }}
                 ></div>
               </div>
+              {uploadStatus.message?.includes('chunks') && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Chunked uploads progress is tracked in real-time in the browser console
+                </p>
+              )}
             </div>
           )}
 

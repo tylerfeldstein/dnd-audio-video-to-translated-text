@@ -5,7 +5,6 @@ import {
   action,
 } from "./_generated/server";
 import { api } from "./_generated/api";
-import { Id } from "./_generated/dataModel";
 
 /**
  * Generate a URL for uploading a file to Convex storage.
@@ -67,7 +66,10 @@ export const getMultipartUploadUrl = mutation({
     uploadId: v.string(),
     chunkIndex: v.number(),
   },
-  returns: v.string(),
+  returns: v.object({
+    uploadUrl: v.string(),
+    chunkId: v.id("multipartChunks")
+  }),
   handler: async (ctx, args) => {
     // Validate the upload ID exists
     const uploads = await ctx.db
@@ -89,29 +91,51 @@ export const getMultipartUploadUrl = mutation({
       throw new Error(`Chunk index ${args.chunkIndex} is out of bounds (max: ${upload.numChunks - 1})`);
     }
     
-    // Create a temporary chunk storage ID
-    const chunkKey = `${args.uploadId}_chunk_${args.chunkIndex}`;
+    // Get an upload URL
+    const uploadUrl = await ctx.storage.generateUploadUrl();
     
-    // Store this mapping for later
-    await ctx.db.insert("multipartChunks", {
+    // Store this chunk info for later
+    const chunkId = await ctx.db.insert("multipartChunks", {
       uploadId: args.uploadId,
       chunkIndex: args.chunkIndex,
-      chunkKey,
+      storageId: undefined, // Will be set after upload
       uploadedAt: Date.now(),
     });
     
-    // Return a URL for uploading this chunk
-    return await ctx.storage.generateUploadUrl();
+    return {
+      uploadUrl,
+      chunkId
+    };
   },
 });
 
 /**
- * Complete a multipart upload by combining all chunks into a single file.
+ * Save the storage ID for a chunk after it's been uploaded
+ */
+export const saveChunkStorageId = mutation({
+  args: {
+    chunkId: v.id("multipartChunks"),
+    storageId: v.id("_storage"),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    // Update the chunk record with the actual storage ID
+    await ctx.db.patch(args.chunkId, {
+      storageId: args.storageId,
+    });
+    
+    return true;
+  },
+});
+
+/**
+ * Complete a multipart upload by storing actual file
  */
 export const completeMultipartUpload = mutation({
   args: {
     uploadId: v.string(),
     contentType: v.string(),
+    storageId: v.id("_storage"), // Use the already uploaded storageId
   },
   returns: v.object({
     success: v.boolean(),
@@ -135,64 +159,18 @@ export const completeMultipartUpload = mutation({
       if (upload.isComplete) {
         throw new Error("This upload has already been completed");
       }
-      
-      // Get all chunks
-      const chunks = await ctx.db
-        .query("multipartChunks")
-        .filter(q => q.eq(q.field("uploadId"), args.uploadId))
-        .collect();
-        
-      if (chunks.length !== upload.numChunks) {
-        throw new Error(`Expected ${upload.numChunks} chunks, but found ${chunks.length}`);
-      }
-      
-      // Sort chunks by index
-      chunks.sort((a, b) => a.chunkIndex - b.chunkIndex);
-      
-      // For this simplified implementation, we'll use the first chunk as our file
-      // In a real implementation, we would concatenate all chunks
-      
-      // Get the first chunk's uploaded data
-      const firstChunk = chunks[0];
-      const url = await ctx.storage.getUrl(firstChunk.chunkKey as Id<"_storage">);
-      
-      if (!url) {
-        throw new Error("Failed to get chunk URL");
-      }
-      
-      // Fetch the chunk data
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch chunk: ${response.statusText}`);
-      }
-      
-      // Get the blob data
-      const blob = await response.blob();
-      
-      // Upload as a new file using the standard upload URL method
-      const uploadUrl = await ctx.storage.generateUploadUrl();
-      const uploadResponse = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": args.contentType },
-        body: blob,
-      });
-      
-      if (!uploadResponse.ok) {
-        throw new Error(`Failed to upload combined file: ${uploadResponse.statusText}`);
-      }
-      
-      const uploadResult = await uploadResponse.json();
-      const storageId = uploadResult.storageId as Id<"_storage">;
-      
+           
       // Mark the upload as complete
       await ctx.db.patch(upload._id, {
         isComplete: true,
         completedAt: Date.now(),
+        storageId: args.storageId,
       });
       
+      // Just return the storageId that was passed in
       return { 
         success: true,
-        storageId,
+        storageId: args.storageId,
       };
     } catch (error) {
       console.error("Error completing multipart upload:", error);

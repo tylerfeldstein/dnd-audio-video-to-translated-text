@@ -46,8 +46,10 @@ async function uploadFileInChunks(
     // For larger files, implement chunked uploads
     console.log(`Uploading large file (${file.size} bytes) in chunks of ${CHUNK_SIZE} bytes`);
     
-    // 1. Initialize the chunked upload (get a multipart upload ID)
-    const initResult = await convex.mutation(api.files.initMultipartUpload, { numChunks: Math.ceil(file.size / CHUNK_SIZE) });
+    // 1. Initialize the chunked upload
+    const initResult = await convex.mutation(api.files.initMultipartUpload, { 
+      numChunks: Math.ceil(file.size / CHUNK_SIZE) 
+    });
     
     if (!initResult.success || !initResult.uploadId) {
       throw new Error(`Failed to initialize multipart upload: ${initResult.error || "Unknown error"}`);
@@ -58,41 +60,79 @@ async function uploadFileInChunks(
     
     // 2. Upload each chunk
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    let finalStorageId: Id<"_storage"> | undefined;
     
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
       const start = chunkIndex * CHUNK_SIZE;
       const end = Math.min(start + CHUNK_SIZE, file.size);
       const chunk = file.slice(start, end);
       
-      try {
-        // Get a URL for this specific chunk
-        const chunkUploadUrl = await convex.mutation(api.files.getMultipartUploadUrl, {
-          uploadId,
-          chunkIndex,
-        });
-        
-        // Upload the chunk to the URL
-        const chunkUploadResult = await fetch(chunkUploadUrl, {
-          method: "PUT", // Multipart uploads use PUT
-          body: chunk,
-        });
-        
-        if (!chunkUploadResult.ok) {
-          throw new Error(`Chunk ${chunkIndex} upload failed: ${chunkUploadResult.statusText}`);
+      // Retry mechanism for chunk uploads
+      let attempts = 0;
+      const maxAttempts = 3;
+      let success = false;
+      
+      while (attempts < maxAttempts && !success) {
+        try {
+          attempts++;
+          
+          // Get a URL for this specific chunk
+          const chunkResult = await convex.mutation(api.files.getMultipartUploadUrl, {
+            uploadId,
+            chunkIndex,
+          });
+          
+          // Upload the chunk to the URL
+          const uploadResult = await fetch(chunkResult.uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/octet-stream" },
+            body: chunk,
+          });
+          
+          if (!uploadResult.ok) {
+            const errorText = await uploadResult.text().catch(() => uploadResult.statusText);
+            throw new Error(`Chunk ${chunkIndex} upload failed: ${errorText || uploadResult.statusText}`);
+          }
+          
+          // Get the storageId from the response
+          const response = await uploadResult.json();
+          const storageId = response.storageId as Id<"_storage">;
+          
+          // Save the storageId for this chunk
+          await convex.mutation(api.files.saveChunkStorageId, {
+            chunkId: chunkResult.chunkId,
+            storageId: storageId
+          });
+          
+          console.log(`Chunk ${chunkIndex + 1}/${totalChunks} uploaded successfully`);
+          
+          // If this is the first chunk, store its ID for later use
+          if (chunkIndex === 0) {
+            finalStorageId = storageId;
+          }
+          
+          success = true;
+        } catch (error) {
+          console.error(`Error uploading chunk ${chunkIndex} (attempt ${attempts}/${maxAttempts}):`, error);
+          if (attempts >= maxAttempts) {
+            throw error;
+          }
+          // Wait briefly before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        
-        console.log(`Chunk ${chunkIndex + 1}/${totalChunks} uploaded successfully`);
-      } catch (error) {
-        console.error(`Error uploading chunk ${chunkIndex}:`, error);
-        throw error;
       }
     }
     
-    // 3. Complete the multipart upload
+    if (!finalStorageId) {
+      throw new Error("Failed to capture any chunk storage IDs");
+    }
+    
+    // 3. Complete the multipart upload with the first chunk's storageId
     console.log(`All chunks uploaded, completing multipart upload...`);
     const completeResult = await convex.mutation(api.files.completeMultipartUpload, {
       uploadId,
       contentType: file.type,
+      storageId: finalStorageId
     });
     
     if (!completeResult.success || !completeResult.storageId) {

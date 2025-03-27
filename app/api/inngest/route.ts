@@ -9,6 +9,7 @@ import {
   pythonTranscriptionFallback
 } from "@/inngest/functions/transcribe";
 
+// The standard export approach that handles empty bodies automatically
 export const { GET, POST, PUT } = serve({
   client: inngest,
   functions: [
@@ -17,4 +18,6 @@ export const { GET, POST, PUT } = serve({
     mediaTranscriptionWorkflow,
     pythonTranscriptionFallback
   ],
+  // Use streaming to allow for longer function execution
+  streaming: "allow"
 });

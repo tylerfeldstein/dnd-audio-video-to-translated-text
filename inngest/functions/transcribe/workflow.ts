@@ -79,7 +79,7 @@ export const mediaTranscriptionWorkflow = inngest.createFunction(
         return tempFilePath;
       });
 
-      let transcriptionResult;
+      let transcriptionResult: string | undefined = undefined;
       let usedFallback = false;
 
       try {
@@ -105,14 +105,14 @@ export const mediaTranscriptionWorkflow = inngest.createFunction(
               "--output_dir", outputDir,
               "--output_format", "txt",
               "--task", "transcribe",
-              "--model", "medium"
+              "--model", "turbo"
             ]);
             console.log("Using resolved paths:", {
               inputFile: path.resolve(tempFilePath),
               outputDir: path.resolve(outputDir)
             });
             console.log("Actual command to be executed:", 
-              `whisper ${path.resolve(tempFilePath)} --output_dir ${path.resolve(outputDir)} --output_format txt --task transcribe --model medium`
+              `whisper ${path.resolve(tempFilePath)} --output_dir ${path.resolve(outputDir)} --output_format txt --task transcribe --model turbo`
             );
             
             // Using local Whisper implementation
@@ -122,7 +122,7 @@ export const mediaTranscriptionWorkflow = inngest.createFunction(
               "--output_dir", path.resolve(outputDir), // Use absolute path to output directory
               "--output_format", "txt",
               "--task", "transcribe",
-              "--model", "medium" // Use medium model for better accuracy
+              "--model", "turbo" // Use medium model for better accuracy
             ]);
             
             // We don't use stdoutData for CLI whisper as it outputs to file
@@ -204,8 +204,8 @@ import os
 print("Current working directory:", os.getcwd())
 print("Processing file:", "${path.resolve(tempFilePath).replace(/\\/g, "\\\\")}")
 
-# Load the model - medium provides good accuracy with reasonable speed
-model = whisper.load_model("medium")
+# Load the model - turbo provides good accuracy with reasonable speed
+model = whisper.load_model("turbo")
 print("Model loaded successfully")
 
 # Transcribe the audio file - will auto-detect language
@@ -295,14 +295,27 @@ print(result["text"])
 
       // If we got a transcription result, save it
       if (transcriptionResult) {
+        // Check if the transcription result is valid
+        if (typeof transcriptionResult !== 'string' || transcriptionResult.trim() === '') {
+          console.warn("Transcription result is empty or invalid:", transcriptionResult);
+          transcriptionResult = "Transcription failed to produce text.";
+        }
+        
         // Save the transcription result to Convex
-        await step.run("save-transcription", async () => {
-          return await convexClient.mutation(api.media.updateTranscription, {
-            mediaId: mediaId as Id<"media">,
-            status: "completed",
-            transcriptionText: transcriptionResult
+        try {
+          await step.run("save-transcription", async () => {
+            return await convexClient.mutation(api.media.updateTranscription, {
+              mediaId: mediaId as Id<"media">,
+              status: "completed",
+              transcriptionText: transcriptionResult
+            });
           });
-        });
+          
+          console.log(`Successfully saved transcription of length ${transcriptionResult.length} to Convex`);
+        } catch (saveError) {
+          console.error("Error saving transcription to Convex:", saveError);
+          // Don't throw here - we at least have the transcription result in memory
+        }
 
         return { 
           success: true, 
@@ -413,8 +426,8 @@ import os
 print("Current working directory:", os.getcwd())
 print("Processing file:", "${path.resolve(actualFilePath).replace(/\\/g, "\\\\")}")
 
-# Load the model - medium provides good accuracy with reasonable speed
-model = whisper.load_model("medium")
+# Load the model - turbo provides good accuracy with reasonable speed
+model = whisper.load_model("turbo")
 print("Model loaded successfully")
 
 # Transcribe the audio file - will auto-detect language

@@ -140,3 +140,23 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Pulsing progress bar animation */
+@keyframes progressPulse {
+  0% {
+    width: 15%;
+    opacity: 0.7;
+  }
+  50% {
+    width: 40%;
+    opacity: 1;
+  }
+  100% {
+    width: 15%;
+    opacity: 0.7;
+  }
+}
+
+.progress-upload-pulse {
+  animation: progressPulse 1.5s infinite ease-in-out;
+}
