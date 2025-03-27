@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import clsx from "clsx";
 import { Button } from "../ui/button";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
@@ -8,6 +8,9 @@ import { AlertCircle, Upload } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { uploadMediaToConvex } from "@/actions/upload/uploadMediaToConvex";
 import { PulseLoader } from "react-spinners";
+import { compressAudio, compressVideo, onFFmpegEvent, isFFmpegCurrentlyLoading } from "@/utils/compression";
+import { CompressionStatus } from "./compression-status";
+import { getBrowserCompatibilityMessage } from "@/utils/browser-check";
 
 interface FileUploaderProps {
   onFilesSelected?: (files: File[]) => void;
@@ -26,6 +29,16 @@ interface UploadStatus {
   stage?: "idle" | "preparing" | "uploading" | "processing" | "completed" | "error";
 }
 
+interface CompressionInfo {
+  status: "idle" | "compressing" | "complete" | "error";
+  fileName?: string;
+  originalSize?: number;
+  compressedSize?: number;
+  fileType?: "audio" | "video";
+  progress: number;
+  error?: string;
+}
+
 export const FileUploader = ({
   onFilesSelected,
   accept = "audio/*,video/*",
@@ -39,7 +52,41 @@ export const FileUploader = ({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>({});
   const [error, setError] = useState<string | null>(null);
+  const [compressionInfo, setCompressionInfo] = useState<CompressionInfo>({
+    status: "idle",
+    progress: 0
+  });
+  const [browserCompatWarning, setBrowserCompatWarning] = useState<string | null>(null);
+  const [isLoadingFFmpeg, setIsLoadingFFmpeg] = useState(isFFmpegCurrentlyLoading());
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check browser compatibility on mount
+  useEffect(() => {
+    const message = getBrowserCompatibilityMessage();
+    setBrowserCompatWarning(message);
+  }, []);
+  
+  // Set up FFmpeg event listeners
+  useEffect(() => {
+    const loadingUnsubscribe = onFFmpegEvent('loading', () => {
+      setIsLoadingFFmpeg(true);
+    });
+    
+    const readyUnsubscribe = onFFmpegEvent('ready', () => {
+      setIsLoadingFFmpeg(false);
+    });
+    
+    const errorUnsubscribe = onFFmpegEvent('error', (err) => {
+      setIsLoadingFFmpeg(false);
+      setError(`Failed to load compression tools: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    });
+    
+    return () => {
+      loadingUnsubscribe();
+      readyUnsubscribe();
+      errorUnsubscribe();
+    };
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -78,6 +125,69 @@ export const FileUploader = ({
     return validFiles;
   };
 
+  const compressFile = async (file: File): Promise<File> => {
+    try {
+      // Reset compression info
+      setCompressionInfo({
+        status: "compressing",
+        fileName: file.name,
+        originalSize: file.size,
+        fileType: file.type.includes("audio") ? "audio" : "video",
+        progress: 0
+      });
+
+      // Simulate progress updates (since we can't get real compression progress from FFmpeg)
+      const progressInterval = setInterval(() => {
+        setCompressionInfo(prev => ({
+          ...prev,
+          progress: Math.min(prev.progress + 5, 95) // Go up to 95%, we'll set 100% when done
+        }));
+      }, 500);
+
+      let compressedFile: File;
+      
+      // Compress based on file type
+      if (file.type.includes("video")) {
+        compressedFile = await compressVideo(file);
+      } else if (file.type.includes("audio")) {
+        compressedFile = await compressAudio(file);
+      } else {
+        // Not a file we can compress, return original
+        clearInterval(progressInterval);
+        return file;
+      }
+
+      // Clear interval and update compression info
+      clearInterval(progressInterval);
+      
+      setCompressionInfo({
+        status: "complete",
+        fileName: file.name,
+        originalSize: file.size,
+        compressedSize: compressedFile.size,
+        fileType: file.type.includes("audio") ? "audio" : "video",
+        progress: 100
+      });
+
+      // Return the compressed file
+      return compressedFile;
+    } catch (error) {
+      console.error("Compression failed:", error);
+      
+      setCompressionInfo({
+        status: "error",
+        fileName: file.name,
+        originalSize: file.size,
+        fileType: file.type.includes("audio") ? "audio" : "video",
+        progress: 0,
+        error: error instanceof Error ? error.message : "Compression failed"
+      });
+      
+      // Return the original file if compression fails
+      return file;
+    }
+  };
+
   const handleUpload = useCallback(
     async (files: File[]) => {
       if (files.length === 0) return;
@@ -91,7 +201,7 @@ export const FileUploader = ({
       if (validFiles.length === 0) return;
 
       try {
-        setIsUploading(true);
+        // Set "preparing" state
         setUploadStatus({
           isUploading: true,
           progress: 0,
@@ -107,19 +217,52 @@ export const FileUploader = ({
 
         // Upload each file to Convex
         for (const file of validFiles) {
+          let fileToUpload: File = file;
+          try {
+            // Try to compress the file before uploading
+            fileToUpload = await compressFile(file);
+          } catch (compressionError) {
+            console.error("Compression failed, falling back to original file:", compressionError);
+            setCompressionInfo({
+              status: "error",
+              fileName: file.name,
+              originalSize: file.size,
+              fileType: file.type.includes("audio") ? "audio" : "video",
+              progress: 0,
+              error: "Compression failed. Uploading original file."
+            });
+            
+            // Wait a moment to show error then continue with original file
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            setCompressionInfo({ status: "idle", progress: 0 });
+            
+            // Use the original file
+            fileToUpload = file;
+          }
+          
           const formData = new FormData();
-
-          formData.append("file", file);
+          formData.append("file", fileToUpload);
           formData.append("userId", actualUserId);
 
           try {
+            // If compression was successful, reset compression info after a delay
+            if (fileToUpload !== file) {
+              setTimeout(() => {
+                setCompressionInfo({
+                  status: "idle",
+                  progress: 0
+                });
+              }, 3000);
+            }
+            
             // Update status to uploading with file size info
-            const isLargeFile = file.size > 5 * 1024 * 1024;
+            setIsUploading(true);
+            const isLargeFile = fileToUpload.size > 5 * 1024 * 1024;
             setUploadStatus({
               isUploading: true,
               progress: 0,
               stage: "uploading",
-              message: `Uploading ${file.name}${isLargeFile ? ' in chunks' : ''}... (${(file.size / (1024 * 1024)).toFixed(2)} MB)`
+              message: `Uploading ${fileToUpload.name}${isLargeFile ? ' in chunks' : ''}... (${(fileToUpload.size / (1024 * 1024)).toFixed(2)} MB)`
             });
 
             // Start the upload
@@ -180,7 +323,7 @@ export const FileUploader = ({
         setIsUploading(false);
       }
     },
-    [onFilesSelected, actualUserId, validateFiles]
+    [onFilesSelected, actualUserId, validateFiles, compressFile]
   );
 
   const handleDrop = useCallback(
@@ -234,6 +377,16 @@ export const FileUploader = ({
         </Alert>
       )}
       
+      {browserCompatWarning && (
+        <Alert variant="default" className="mb-4 bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800">
+          <AlertCircle className="h-4 w-4 text-blue-500" />
+          <AlertTitle className="text-blue-700 dark:text-blue-300">Info</AlertTitle>
+          <AlertDescription className="text-blue-600 dark:text-blue-400">
+            {browserCompatWarning}
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div
         aria-label="File upload area"
         className={clsx(
@@ -241,7 +394,7 @@ export const FileUploader = ({
           isDragging
             ? "border-primary bg-primary/5 dark:bg-primary/10 scale-[1.02] shadow-lg"
             : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600",
-          isUploading && "opacity-75 cursor-not-allowed",
+          (isUploading || isLoadingFFmpeg) && "opacity-75 cursor-not-allowed",
           className
         )}
         role="button"
@@ -279,46 +432,71 @@ export const FileUploader = ({
               </svg>
             )}
           </div>
-          <p className={clsx(
-            "text-lg transition-all duration-200", 
-            isDragging 
-              ? "text-primary font-medium scale-105" 
-              : "text-gray-600 dark:text-gray-300"
-          )}>
-            {isDragging 
-              ? "Release to upload files" 
-              : "Drag and drop audio or video files here, or click to select files"}
-          </p>
-          <input
-            ref={fileInputRef}
-            accept={accept}
-            aria-hidden="true"
-            className="hidden"
-            disabled={isUploading}
-            multiple={multiple}
-            type="file"
-            onChange={handleFileInputChange}
-          />
-          <Button
-            className={clsx(
-              "font-medium transition-all", 
-              isDragging && "bg-primary hover:bg-primary/90"
-            )}
-            variant={isUploading ? "outline" : "default"}
-            disabled={isUploading}
-            onClick={handleButtonClick}
-          >
-            {isUploading ? "Uploading..." : multiple ? "Select files" : "Select file"}
-          </Button>
           
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Audio files (MP3, WAV, etc.) and video files (MP4, MOV, etc.) are supported
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Large files ({'>'}5MB) will be uploaded in chunks for better reliability
-          </p>
+          {isLoadingFFmpeg ? (
+            <div className="flex flex-col items-center gap-2">
+              <PulseLoader size={8} color="#6366F1" />
+              <p className="text-blue-500 dark:text-blue-400 text-sm font-medium">
+                Loading compression tools...
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className={clsx(
+                "text-lg transition-all duration-200", 
+                isDragging 
+                  ? "text-primary font-medium scale-105" 
+                  : "text-gray-600 dark:text-gray-300"
+              )}>
+                {isDragging 
+                  ? "Release to upload files" 
+                  : "Drag and drop audio or video files here, or click to select files"}
+              </p>
+              <input
+                ref={fileInputRef}
+                accept={accept}
+                aria-hidden="true"
+                className="hidden"
+                disabled={isUploading || isLoadingFFmpeg}
+                multiple={multiple}
+                type="file"
+                onChange={handleFileInputChange}
+              />
+              <Button
+                className={clsx(
+                  "font-medium transition-all", 
+                  isDragging && "bg-primary hover:bg-primary/90"
+                )}
+                variant={isUploading ? "outline" : "default"}
+                disabled={isUploading || isLoadingFFmpeg}
+                onClick={handleButtonClick}
+              >
+                {isUploading ? "Uploading..." : multiple ? "Select files" : "Select file"}
+              </Button>
+              
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Audio files (MP3, WAV, etc.) and video files (MP4, MOV, etc.) are supported
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Files will be compressed before uploading to save space
+              </p>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Compression Status */}
+      {compressionInfo.status !== "idle" && (
+        <CompressionStatus 
+          status={compressionInfo.status}
+          fileName={compressionInfo.fileName}
+          originalSize={compressionInfo.originalSize}
+          compressedSize={compressionInfo.compressedSize}
+          fileType={compressionInfo.fileType}
+          progress={compressionInfo.progress}
+          error={compressionInfo.error}
+        />
+      )}
 
       {/* Upload Progress UI */}
       {uploadStatus.stage && uploadStatus.stage !== "idle" && (

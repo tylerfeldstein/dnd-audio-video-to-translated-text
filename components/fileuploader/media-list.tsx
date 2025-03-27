@@ -46,7 +46,9 @@ export const MediaList = ({ userId }: MediaListProps) => {
       try {
         setIsLoading(true);
         const data = await convex.query(api.media.getAllMedia, { userId });
-        setMediaFiles(data as Media[]);
+        // Sort media by creation time in descending order (newest first)
+        const sortedMedia = [...data as Media[]].sort((a, b) => b._creationTime - a._creationTime);
+        setMediaFiles(sortedMedia);
       } catch (err) {
         console.error("Error fetching media files:", err);
         setError("Failed to load media files");
@@ -63,7 +65,9 @@ export const MediaList = ({ userId }: MediaListProps) => {
       if (!isDialogOpen) {
         convex.query(api.media.getAllMedia, { userId })
           .then(data => {
-            setMediaFiles(data as Media[]);
+            // Sort media by creation time in descending order (newest first)
+            const sortedMedia = [...data as Media[]].sort((a, b) => b._creationTime - a._creationTime);
+            setMediaFiles(sortedMedia);
           })
           .catch(err => {
             console.error("Error polling media files:", err);
