@@ -387,4 +387,34 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return bytes + ' bytes';
   else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
   else return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+/**
+ * Helper function to check if a specific video format is supported by the browser
+ */
+export function isSupportedVideoFormat(mimeType: string): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  // Check if video element is supported
+  const video = document.createElement('video');
+  if (!video.canPlayType) return false;
+  
+  // Check support for this specific MIME type
+  const canPlay = video.canPlayType(mimeType);
+  
+  // canPlayType returns: "", "maybe", or "probably"
+  return canPlay !== "";
+}
+
+/**
+ * Returns an object with information about browser video support
+ */
+export function getVideoSupportInfo(): Record<string, boolean> {
+  return {
+    mp4H264: isSupportedVideoFormat('video/mp4; codecs="avc1.42E01E"'),
+    mp4H265: isSupportedVideoFormat('video/mp4; codecs="hev1.1.6.L93.B0"'),
+    webm: isSupportedVideoFormat('video/webm; codecs="vp8, vorbis"'),
+    webmVP9: isSupportedVideoFormat('video/webm; codecs="vp9"'),
+    ogg: isSupportedVideoFormat('video/ogg; codecs="theora"'),
+  };
 } 

@@ -10,6 +10,63 @@ import path from "path";
 // Set up the Convex client
 const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
+/**
+ * Extracts audio from a video file using ffmpeg
+ * @param videoPath Path to the video file
+ * @returns Path to the extracted audio file (.mp3)
+ */
+async function extractAudioFromVideo(videoPath: string): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const outputDir = path.dirname(videoPath);
+    const audioPath = path.join(outputDir, `${path.parse(videoPath).name}.mp3`);
+    
+    console.log("Extracting audio from video to:", audioPath);
+    
+    const ffmpegProcess = spawn("ffmpeg", [
+      "-i", videoPath,
+      "-q:a", "0",
+      "-map", "a",
+      "-y", // Overwrite existing file
+      audioPath
+    ]);
+    
+    let stderrData = "";
+    
+    ffmpegProcess.stderr.on("data", (data) => {
+      const chunk = data.toString();
+      stderrData += chunk;
+      console.log("FFmpeg stderr:", chunk);
+    });
+    
+    ffmpegProcess.on("close", (code) => {
+      console.log("FFmpeg process exited with code:", code);
+      
+      if (code !== 0) {
+        console.error(`FFmpeg process failed with code ${code}: ${stderrData}`);
+        reject(new Error(`FFmpeg process exited with code ${code}: ${stderrData}`));
+        return;
+      }
+      
+      if (!fs.existsSync(audioPath)) {
+        reject(new Error(`Audio extraction successful but file not found at: ${audioPath}`));
+        return;
+      }
+      
+      console.log("Audio extracted successfully");
+      resolve(audioPath);
+    });
+  });
+}
+
+/**
+ * Checks if a file is a video based on its extension
+ */
+function isVideoFile(filePath: string): boolean {
+  const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv'];
+  const ext = path.extname(filePath).toLowerCase();
+  return videoExtensions.includes(ext);
+}
+
 // Event triggered when a new media file is uploaded
 export const mediaTranscriptionWorkflow = inngest.createFunction(
   { id: "media-transcription-workflow" },
@@ -79,6 +136,17 @@ export const mediaTranscriptionWorkflow = inngest.createFunction(
         return tempFilePath;
       });
 
+      // Check if the file is a video and extract audio if needed
+      const audioFilePath = await step.run("prepare-audio-file", async () => {
+        if (isVideoFile(tempFilePath)) {
+          console.log("File is a video, extracting audio...");
+          return await extractAudioFromVideo(tempFilePath);
+        } else {
+          console.log("File is already audio, skipping extraction");
+          return tempFilePath;
+        }
+      });
+
       let transcriptionResult: string | undefined = undefined;
       let usedFallback = false;
 
@@ -86,39 +154,39 @@ export const mediaTranscriptionWorkflow = inngest.createFunction(
         // Try the main whisper CLI command first
         transcriptionResult = await step.run("run-whisper-transcription", async () => {
           // Use the same directory for the output
-          const outputDir = path.dirname(tempFilePath);
-          const fileName = path.basename(tempFilePath);
+          const outputDir = path.dirname(audioFilePath);
+          const fileName = path.basename(audioFilePath);
           const outputPath = path.join(outputDir, `${path.parse(fileName).name}.txt`);
           
           console.log("Will save transcription to:", outputPath);
           
           return new Promise<string>((resolve, reject) => {
             // Check if the input file exists
-            if (!fs.existsSync(tempFilePath)) {
-              console.error("Input file does not exist:", tempFilePath);
-              reject(new Error(`Input file does not exist: ${tempFilePath}`));
+            if (!fs.existsSync(audioFilePath)) {
+              console.error("Input file does not exist:", audioFilePath);
+              reject(new Error(`Input file does not exist: ${audioFilePath}`));
               return;
             }
           
             console.log("Spawning whisper process with command:", "whisper", [
-              tempFilePath,
+              audioFilePath,
               "--output_dir", outputDir,
               "--output_format", "txt",
               "--task", "transcribe",
               "--model", "turbo"
             ]);
             console.log("Using resolved paths:", {
-              inputFile: path.resolve(tempFilePath),
+              inputFile: path.resolve(audioFilePath),
               outputDir: path.resolve(outputDir)
             });
             console.log("Actual command to be executed:", 
-              `whisper ${path.resolve(tempFilePath)} --output_dir ${path.resolve(outputDir)} --output_format txt --task transcribe --model turbo`
+              `whisper ${path.resolve(audioFilePath)} --output_dir ${path.resolve(outputDir)} --output_format txt --task transcribe --model turbo`
             );
             
             // Using local Whisper implementation
             // Adding full path to ensure whisper can find the file
             const whisperProcess = spawn("whisper", [
-              path.resolve(tempFilePath), // Use absolute path to the input file
+              path.resolve(audioFilePath), // Use absolute path to the input file
               "--output_dir", path.resolve(outputDir), // Use absolute path to output directory
               "--output_format", "txt",
               "--task", "transcribe",
@@ -191,7 +259,7 @@ export const mediaTranscriptionWorkflow = inngest.createFunction(
         
         transcriptionResult = await step.run("run-python-transcription-fallback", async () => {
           // Create a Python script for transcription in the same directory
-          const outputDir = path.dirname(tempFilePath);
+          const outputDir = path.dirname(audioFilePath);
           const scriptPath = path.join(outputDir, "transcribe.py");
           
           console.log("Creating Python script at:", scriptPath);
@@ -202,18 +270,18 @@ import whisper
 import os
 
 print("Current working directory:", os.getcwd())
-print("Processing file:", "${path.resolve(tempFilePath).replace(/\\/g, "\\\\")}")
+print("Processing file:", "${path.resolve(audioFilePath).replace(/\\/g, "\\\\")}")
 
 # Load the model - turbo provides good accuracy with reasonable speed
 model = whisper.load_model("turbo")
 print("Model loaded successfully")
 
 # Transcribe the audio file - will auto-detect language
-result = model.transcribe("${path.resolve(tempFilePath).replace(/\\/g, "\\\\")}")
+result = model.transcribe("${path.resolve(audioFilePath).replace(/\\/g, "\\\\")}")
 print("Transcription completed, length:", len(result["text"]))
 
 # Save transcription to a file as well
-output_path = "${path.resolve(tempFilePath).replace(/\\/g, "\\\\")}.txt"
+output_path = "${path.resolve(audioFilePath).replace(/\\/g, "\\\\")}.txt"
 with open(output_path, "w") as f:
     f.write(result["text"])
 print("Transcription saved to:", output_path)
@@ -256,7 +324,7 @@ print(result["text"])
                 
                 // Save stdout to a file for debugging
                 const outputDir = path.dirname(scriptPath);
-                const stdoutPath = path.join(outputDir, `${path.basename(tempFilePath)}-stdout.txt`);
+                const stdoutPath = path.join(outputDir, `${path.basename(audioFilePath)}-stdout.txt`);
                 fs.writeFileSync(stdoutPath, stdoutData);
                 console.log("Python stdout saved to:", stdoutPath);
                 
@@ -413,9 +481,20 @@ export const pythonTranscriptionFallback = inngest.createFunction(
         console.log("Using existing file at:", tempFilePath);
       }
       
+      // Check if the file is a video and extract audio if needed
+      const audioFilePath = await step.run("prepare-audio-file", async () => {
+        if (isVideoFile(actualFilePath)) {
+          console.log("File is a video, extracting audio...");
+          return await extractAudioFromVideo(actualFilePath);
+        } else {
+          console.log("File is already audio, skipping extraction");
+          return actualFilePath;
+        }
+      });
+      
       // Create a Python script for transcription
       const scriptPath = await step.run("create-python-script", async () => {
-        const outputDir = path.dirname(actualFilePath);
+        const outputDir = path.dirname(audioFilePath);
         const scriptPath = path.join(outputDir, "transcribe.py");
         
         const pythonScript = `
@@ -424,18 +503,18 @@ import whisper
 import os
 
 print("Current working directory:", os.getcwd())
-print("Processing file:", "${path.resolve(actualFilePath).replace(/\\/g, "\\\\")}")
+print("Processing file:", "${path.resolve(audioFilePath).replace(/\\/g, "\\\\")}")
 
 # Load the model - turbo provides good accuracy with reasonable speed
 model = whisper.load_model("turbo")
 print("Model loaded successfully")
 
 # Transcribe the audio file - will auto-detect language
-result = model.transcribe("${path.resolve(actualFilePath).replace(/\\/g, "\\\\")}")
+result = model.transcribe("${path.resolve(audioFilePath).replace(/\\/g, "\\\\")}")
 print("Transcription completed, length:", len(result["text"]))
 
 # Save transcription to a file as well
-output_path = "${path.resolve(actualFilePath).replace(/\\/g, "\\\\")}.txt"
+output_path = "${path.resolve(audioFilePath).replace(/\\/g, "\\\\")}.txt"
 with open(output_path, "w") as f:
     f.write(result["text"])
 print("Transcription saved to:", output_path)
@@ -480,7 +559,7 @@ print(result["text"])
             
             // Save stdout to a file for debugging
             const outputDir = path.dirname(scriptPath);
-            const stdoutPath = path.join(outputDir, `${path.basename(actualFilePath)}-stdout.txt`);
+            const stdoutPath = path.join(outputDir, `${path.basename(audioFilePath)}-stdout.txt`);
             fs.writeFileSync(stdoutPath, stdoutData);
             console.log("Python stdout saved to:", stdoutPath);
             
