@@ -10,6 +10,7 @@ import {
 } from "@/inngest/functions/transcribe";
 import { translateTextWorkflow } from "@/inngest/functions/translate/translate";
 import { grammarCorrectWorkflow } from "@/inngest/functions/grammerChecker";
+import { aiEnhanceWorkflow } from "@/inngest/functions/aiEnhanceTool";
 
 // The standard export approach that handles empty bodies automatically
 export const { GET, POST, PUT } = serve({
@@ -20,7 +21,8 @@ export const { GET, POST, PUT } = serve({
     mediaTranscriptionWorkflow,
     pythonTranscriptionFallback,
     translateTextWorkflow,
-    grammarCorrectWorkflow
+    grammarCorrectWorkflow,
+    aiEnhanceWorkflow
   ],
   // Use streaming to allow for longer function execution
   streaming: "allow"

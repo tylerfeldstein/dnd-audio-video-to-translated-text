@@ -30,6 +30,15 @@ export default defineSchema({
       status: v.optional(v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("error"))),
       error: v.optional(v.string())
     }))),
+    enhancements: v.optional(v.array(v.object({
+      originalText: v.string(), // The source text that was enhanced (transcription or translation)
+      enhancedText: v.string(), // The AI enhanced version of the text
+      modelName: v.string(), // The name of the LLM model used
+      promptType: v.string(), // The type of enhancement, e.g., "improve-dialog", "make-formal", etc.
+      enhancedAt: v.number(), // Timestamp of enhancement
+      status: v.optional(v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("error"))),
+      error: v.optional(v.string())
+    }))),
   }).index("by_userId", ["userId"]),
 
   receipts: defineTable({

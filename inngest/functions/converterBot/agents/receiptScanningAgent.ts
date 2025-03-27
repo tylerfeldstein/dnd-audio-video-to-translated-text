@@ -22,7 +22,7 @@ const parsePdfTool = createTool({
       // Dynamically import pdf-parse to avoid initialization issues
       const pdfParse = await import('pdf-parse').then(module => module.default);
       const data = await pdfParse(pdfBuffer);
-      
+      console.log(data)
       // Use the step.ai.infer to process the PDF with the local LLM
       return await step?.ai.infer("parse-pdf", {
         model: createModel(), // Use our custom model that supports LMStudio

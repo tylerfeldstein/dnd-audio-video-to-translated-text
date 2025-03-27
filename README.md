@@ -56,6 +56,14 @@ pnpm dev:stack
 
 ---
 
+## Whisper install
+
+```sh
+brew install openai-whisper
+```
+
+You will need to get a model. Update the values in the inngest/functions/transcribe/workflow.ts if you want to use something else other than turbo
+
 ## libre translate
 
 To start the container
@@ -103,7 +111,7 @@ The Api docs for the container are at `https://libretranslate.com/docs/#/transla
 
 ---
 
-## Grammer checker
+## Grammar checker
 
 Pull container
 
@@ -134,4 +142,13 @@ console.log(result);
 ```
 
 ---
+
 ## KOKORO Text to voice
+
+Currently just copy pasta from our app to the kokoro
+
+```sh
+docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu
+```
+
+got to `http://localhost:8880/web` and paste it in. you can select two voices

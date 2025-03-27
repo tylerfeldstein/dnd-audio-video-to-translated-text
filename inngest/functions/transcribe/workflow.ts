@@ -1,4 +1,4 @@
-import { inngest } from "../../client";
+import { inngest } from "@/inngest/client";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";

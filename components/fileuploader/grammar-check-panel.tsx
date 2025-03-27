@@ -57,26 +57,11 @@ export function GrammarCheckPanel({ text = "", label, language }: GrammarCheckPa
     }
   }, [grammarCheck, text]);
 
-  // Show status updates via toast
-  useEffect(() => {
-    if (!grammarCheck) return;
-
-    if (grammarCheck.status === "completed") {
-      toast.success(
-        `Grammar check completed with ${grammarCheck.corrections?.length || 0} suggestions`
-      );
-      setIsChecking(false);
-    } else if (grammarCheck.status === "error" && grammarCheck.error) {
-      toast.error(`Grammar check failed: ${grammarCheck.error}`);
-      setIsChecking(false);
-    }
-  }, [grammarCheck]);
-
   const handleGrammarCheck = async () => {
     if (!text.trim() || !user) return;
     
     setIsChecking(true);
-    const toastId = toast.loading("Starting grammar check...", { duration: Infinity });
+    const toastId = toast.loading("Starting grammar check...", { duration: Infinity }) as string;
     
     try {
       // Pass the language parameter if available
@@ -85,12 +70,47 @@ export function GrammarCheckPanel({ text = "", label, language }: GrammarCheckPa
       
       // Update toast to processing
       toast.loading("Processing grammar check...", { id: toastId });
+      
+      // Store the toast ID to dismiss it later when we get a status update
+      if (newJobId) {
+        localStorage.setItem(`grammarToast_${newJobId}`, toastId);
+      }
     } catch (err) {
       toast.error("Failed to start grammar check. Please try again.", { id: toastId });
       console.error("Grammar check error:", err);
       setIsChecking(false);
     }
   };
+
+  // Show status updates via toast
+  useEffect(() => {
+    if (!grammarCheck) return;
+
+    // Get the stored toast ID for this job
+    const toastId = jobId ? localStorage.getItem(`grammarToast_${jobId}`) : null;
+
+    if (grammarCheck.status === "completed") {
+      // Dismiss the loading toast if it exists
+      if (toastId) {
+        toast.dismiss(toastId);
+        localStorage.removeItem(`grammarToast_${jobId}`);
+      }
+      
+      toast.success(
+        `Grammar check completed with ${grammarCheck.corrections?.length || 0} suggestions`
+      );
+      setIsChecking(false);
+    } else if (grammarCheck.status === "error" && grammarCheck.error) {
+      // Dismiss the loading toast if it exists
+      if (toastId) {
+        toast.dismiss(toastId);
+        localStorage.removeItem(`grammarToast_${jobId}`);
+      }
+      
+      toast.error(`Grammar check failed: ${grammarCheck.error}`);
+      setIsChecking(false);
+    }
+  }, [grammarCheck, jobId]);
 
   const getStatusBadge = (status?: string) => {
     if (!status) return null;

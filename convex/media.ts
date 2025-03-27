@@ -87,6 +87,22 @@ export const getAllMedia = query({
           error: v.optional(v.string())
         })
       )),
+      enhancements: v.optional(v.array(
+        v.object({
+          originalText: v.string(),
+          enhancedText: v.string(),
+          modelName: v.string(),
+          promptType: v.string(),
+          enhancedAt: v.number(),
+          status: v.optional(v.union(
+            v.literal("pending"),
+            v.literal("processing"),
+            v.literal("completed"),
+            v.literal("error")
+          )),
+          error: v.optional(v.string())
+        })
+      )),
     })
   ),
   handler: async (ctx, args) => {
@@ -137,6 +153,22 @@ export const getMediaById = query({
           targetLanguage: v.string(),
           translatedText: v.string(),
           translatedAt: v.number(),
+          status: v.optional(v.union(
+            v.literal("pending"),
+            v.literal("processing"),
+            v.literal("completed"),
+            v.literal("error")
+          )),
+          error: v.optional(v.string())
+        })
+      )),
+      enhancements: v.optional(v.array(
+        v.object({
+          originalText: v.string(),
+          enhancedText: v.string(),
+          modelName: v.string(),
+          promptType: v.string(),
+          enhancedAt: v.number(),
           status: v.optional(v.union(
             v.literal("pending"),
             v.literal("processing"),
@@ -246,6 +278,46 @@ export const updateTranslations = mutation({
 
     await ctx.db.patch(args.mediaId, {
       translations: args.translations,
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Update the AI enhancements for a media file
+ */
+export const updateEnhancements = mutation({
+  args: {
+    mediaId: v.id("media"),
+    enhancements: v.array(
+      v.object({
+        originalText: v.string(),
+        enhancedText: v.string(),
+        modelName: v.string(),
+        promptType: v.string(),
+        enhancedAt: v.number(),
+        status: v.optional(v.union(
+          v.literal("pending"),
+          v.literal("processing"),
+          v.literal("completed"),
+          v.literal("error")
+        )),
+        error: v.optional(v.string())
+      })
+    ),
+  },
+  returns: v.object({
+    success: v.boolean()
+  }),
+  handler: async (ctx, args) => {
+    const media = await ctx.db.get(args.mediaId);
+    if (!media) {
+      throw new Error("Media not found");
+    }
+
+    await ctx.db.patch(args.mediaId, {
+      enhancements: args.enhancements,
     });
 
     return { success: true };

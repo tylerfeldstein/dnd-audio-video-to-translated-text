@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { languages, getLanguageName, getAvailableTargetLanguages } from "@/lib/languages";
 import { Badge } from "@/components/ui/badge";
 import { GrammarCheckPanel } from "./grammar-check-panel";
+import { AIEnhancementPanel } from "./ai-enhancement-panel";
 
 interface Translation {
   targetLanguage: string;
@@ -51,7 +52,7 @@ export function TranslationPanel({ mediaId, detectedLanguage }: TranslationPanel
     const toastId = toast.loading(
       `Starting translation to ${getLanguageName(selectedLanguage)}...`,
       { duration: Infinity }
-    );
+    ) as string;
 
     try {
       await requestTranslation({
@@ -60,9 +61,13 @@ export function TranslationPanel({ mediaId, detectedLanguage }: TranslationPanel
         userId: user.id
       });
       
-      // Note: We don't dismiss the toast here since the translation is async
-      // The success toast will be shown when the translation is completed
-      // via the real-time updates from Convex
+      // Update toast to show processing status
+      toast.loading(`Processing translation to ${getLanguageName(selectedLanguage)}...`, {
+        id: toastId
+      });
+      
+      // Store the toast ID to dismiss it later when we get a status update
+      localStorage.setItem(`translateToast_${mediaId.toString()}_${selectedLanguage}`, toastId);
     } catch (err) {
       toast.error("Failed to start translation. Please try again.", {
         id: toastId
@@ -77,13 +82,26 @@ export function TranslationPanel({ mediaId, detectedLanguage }: TranslationPanel
 
     const { status, error } = currentTranslation;
     const language = getLanguageName(selectedLanguage);
+    
+    // Get the stored toast ID
+    const toastId = localStorage.getItem(`translateToast_${mediaId.toString()}_${selectedLanguage}`);
 
     if (status === "completed") {
+      // Dismiss the loading toast if it exists
+      if (toastId) {
+        toast.dismiss(toastId);
+        localStorage.removeItem(`translateToast_${mediaId.toString()}_${selectedLanguage}`);
+      }
       toast.success(`Successfully translated to ${language}`);
     } else if (status === "error" && error) {
+      // Dismiss the loading toast if it exists
+      if (toastId) {
+        toast.dismiss(toastId);
+        localStorage.removeItem(`translateToast_${mediaId.toString()}_${selectedLanguage}`);
+      }
       toast.error(`Translation to ${language} failed: ${error}`);
     }
-  }, [currentTranslation, selectedLanguage]);
+  }, [currentTranslation, selectedLanguage, mediaId]);
 
   const getStatusBadge = (status?: string) => {
     if (!status) return null;
@@ -178,6 +196,17 @@ export function TranslationPanel({ mediaId, detectedLanguage }: TranslationPanel
                     text={currentTranslation.translatedText} 
                     label={`Translated ${getLanguageName(selectedLanguage)} Grammar Check`}
                     language={selectedLanguage}
+                  />
+                </div>
+              )}
+              
+              {/* Add AI Enhancement for translated text */}
+              {currentTranslation.status === "completed" && currentTranslation.translatedText && (
+                <div className="mt-4 pt-4 border-t">
+                  <AIEnhancementPanel 
+                    mediaId={mediaId} 
+                    text={currentTranslation.translatedText} 
+                    label={`Enhance ${getLanguageName(selectedLanguage)} Translation`}
                   />
                 </div>
               )}

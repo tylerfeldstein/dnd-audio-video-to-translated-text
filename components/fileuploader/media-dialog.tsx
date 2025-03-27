@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Id } from "@/convex/_generated/dataModel";
 import { TranslationPanel } from "./translation-panel";
 import { GrammarCheckPanel } from "./grammar-check-panel";
+import { AIEnhancementPanel } from "./ai-enhancement-panel";
 import { ConvexReactClient } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { getVideoSupportInfo } from "@/utils/compression";
@@ -428,6 +429,15 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
                 <p className="whitespace-pre-wrap text-sm">
                   {media.transcriptionText}
                 </p>
+              </div>
+
+              {/* Add AI Enhancement Panel for original transcription */}
+              <div className="mt-6 pt-6 border-t">
+                <AIEnhancementPanel 
+                  mediaId={media._id} 
+                  text={media.transcriptionText} 
+                  label="AI Enhance Transcription"
+                />
               </div>
 
               {/* Add Grammar Check Panel for original transcription */}
