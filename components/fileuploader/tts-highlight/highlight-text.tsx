@@ -4,33 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Timestamp } from "@/actions/kokoroTts/captionedTts";
 
 // Define CSS keyframes for the highlight animation
-const keyframes = `
-@keyframes highlightSlide {
-  0% {
-    transform: scaleX(0);
-    opacity: 0.3;
-  }
-  30% {
-    opacity: 0.9;
-  }
-  100% {
-    transform: scaleX(1);
-    opacity: 0.7;
-  }
-}
-
-@keyframes highlightPulse {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-`;
+const keyframes = ``;
 
 interface HighlightTextProps {
   text: string;
@@ -178,7 +152,7 @@ export function HighlightText({
               ref={(el) => {
                 wordRefs.current[index] = el;
               }}
-              className={`relative cursor-pointer px-0.5 py-1 rounded transition-colors duration-100 ${
+              className={`relative cursor-pointer px-1 py-0.5 rounded transition-colors duration-100 ${
                 index === activeWordIndex
                   ? "text-indigo-950 dark:text-white font-semibold z-10"
                   : "hover:bg-indigo-100 dark:hover:bg-indigo-900/30"
@@ -189,15 +163,11 @@ export function HighlightText({
             >
               {index === activeWordIndex && (
                 <span 
-                  className={`absolute inset-0 rounded-md -z-10 shadow-md dark:shadow-indigo-900/30`}
+                  className={`absolute inset-0 rounded-md -z-10`}
                   style={{
-                    animation: `highlightSlide 0.4s ease-out forwards, highlightPulse 2s ease-in-out infinite`,
-                    transformOrigin: 'left center',
-                    background: 'linear-gradient(90deg, rgba(99,102,241,0.8) 0%, rgba(168,85,247,0.8) 50%, rgba(99,102,241,0.8) 100%)',
-                    backgroundSize: '200% 100%',
-                    backdropFilter: 'blur(1px)',
-                    border: '1px solid rgba(99,102,241,0.4)',
-                    boxShadow: '0 0 8px rgba(99,102,241,0.5)'
+                    background: 'rgba(99,102,241,0.2)',
+                    width: '100%',
+                    height: '100%'
                   }}
                 />
               )}
