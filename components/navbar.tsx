@@ -24,6 +24,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Logo } from "@/components/logo"
 import { FileText, Headphones, Languages, MessageSquare } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function NavBar() {
   const { isSignedIn } = useUser()
@@ -144,6 +145,7 @@ export function NavBar() {
         </NavigationMenu>
 
         <div className="ml-auto flex items-center gap-4">
+          <ThemeToggle />
           {!isSignedIn && (
             <div className="hidden sm:flex items-center gap-2">
               <SignInButton mode="modal">

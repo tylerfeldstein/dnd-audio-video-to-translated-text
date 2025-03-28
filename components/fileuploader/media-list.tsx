@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import React from "react";
 import { MediaDialog } from "./media-dialog";
 import { motion } from "framer-motion";
-import { FileAudio, FileVideo, Loader2, ArrowDown01, ArrowUp10, Calendar, Search } from "lucide-react";
+import { FileAudio, FileVideo, Loader2, ArrowDown01, ArrowUp10, Calendar, Search, LayoutGrid, Table2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -45,6 +45,7 @@ export const MediaList = ({ userId }: MediaListProps) => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'audio' | 'video'>('all');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   
   // Fetch media files on component mount
   useEffect(() => {
@@ -265,6 +266,23 @@ export const MediaList = ({ userId }: MediaListProps) => {
                   <Button
                     variant="outline"
                     size="sm"
+                    className={`px-3 h-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 ${viewMode === 'table' ? 'bg-gray-100 dark:bg-gray-800' : ''}`}
+                    onClick={() => setViewMode('table')}
+                  >
+                    <Table2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`px-3 h-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 ${viewMode === 'grid' ? 'bg-gray-100 dark:bg-gray-800' : ''}`}
+                    onClick={() => setViewMode('grid')}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <div className="w-px h-9 bg-gray-200 dark:bg-gray-800 mx-1" />
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className={`px-3 h-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 ${filterType === 'all' ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-400'}`}
                     onClick={() => setFilterType('all')}
                   >
@@ -294,114 +312,174 @@ export const MediaList = ({ userId }: MediaListProps) => {
           </CardHeader>
           
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full divide-y divide-gray-200 dark:divide-gray-800">
-                <thead className="bg-gray-50 dark:bg-gray-900">
-                  <tr>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      scope="col"
-                    >
-                      Name
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      scope="col"
-                    >
-                      Type
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors duration-200"
-                      scope="col"
-                      onClick={toggleSort}
-                    >
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span>Uploaded</span>
-                        {sortDirection === 'desc' ? 
-                          <ArrowDown01 className="h-3.5 w-3.5 ml-1" /> : 
-                          <ArrowUp10 className="h-3.5 w-3.5 ml-1" />
-                        }
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      scope="col"
-                    >
-                      Size
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      scope="col"
-                    >
-                      Transcription
-                    </th>
-                  </tr>
-                </thead>
-                
-                <motion.tbody
-                  className="bg-white dark:bg-gray-950 divide-y divide-gray-100 dark:divide-gray-800"
-                  variants={container}
-                  initial="hidden"
-                  animate="show"
-                >
-                  {filteredMediaFiles.map((media) => (
-                    <motion.tr
-                      key={media._id.toString()}
-                      variants={item}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer group"
-                      onClick={() => handleRowClick(media)}
-                      whileHover={{ scale: 1.005 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 flex items-center justify-center rounded-full ${
-                            media.mimeType.includes('audio') 
-                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
-                              : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
-                          }`}>
-                            {media.mimeType.includes('audio') ? (
-                              <FileAudio className="h-4 w-4" />
-                            ) : (
-                              <FileVideo className="h-4 w-4" />
-                            )}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">
-                              {media.name}
-                            </span>
-                            {media.duration && (
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                {formatDuration(media.duration)}
-                              </span>
-                            )}
-                          </div>
+            {viewMode === 'table' ? (
+              <div className="overflow-x-auto">
+                <table className="w-full divide-y divide-gray-200 dark:divide-gray-800">
+                  <thead className="bg-gray-50 dark:bg-gray-900">
+                    <tr>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                        scope="col"
+                      >
+                        Name
+                      </th>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                        scope="col"
+                      >
+                        Type
+                      </th>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors duration-200"
+                        scope="col"
+                        onClick={toggleSort}
+                      >
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5" />
+                          <span>Uploaded</span>
+                          {sortDirection === 'desc' ? 
+                            <ArrowDown01 className="h-3.5 w-3.5 ml-1" /> : 
+                            <ArrowUp10 className="h-3.5 w-3.5 ml-1" />
+                          }
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">{media.mimeType}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">{formatDate(media._creationTime)}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">{formatFileSize(media.size)}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </th>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                        scope="col"
+                      >
+                        Size
+                      </th>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                        scope="col"
+                      >
+                        Transcription
+                      </th>
+                    </tr>
+                  </thead>
+                  
+                  <motion.tbody
+                    className="bg-white dark:bg-gray-950 divide-y divide-gray-100 dark:divide-gray-800"
+                    variants={container}
+                    initial="hidden"
+                    animate="show"
+                  >
+                    {filteredMediaFiles.map((media) => (
+                      <motion.tr
+                        key={media._id.toString()}
+                        variants={item}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer group"
+                        onClick={() => handleRowClick(media)}
+                        whileHover={{ scale: 1.005 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 flex items-center justify-center rounded-full ${
+                              media.mimeType.includes('audio') 
+                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
+                                : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+                            }`}>
+                              {media.mimeType.includes('audio') ? (
+                                <FileAudio className="h-4 w-4" />
+                              ) : (
+                                <FileVideo className="h-4 w-4" />
+                              )}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">
+                                {media.name}
+                              </span>
+                              {media.duration && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {formatDuration(media.duration)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{media.mimeType}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{formatDate(media._creationTime)}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{formatFileSize(media.size)}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(media.transcriptionStatus)}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </motion.tbody>
+                </table>
+                
+                {filteredMediaFiles.length === 0 && (
+                  <div className="py-12 text-center text-gray-500 dark:text-gray-400 italic">
+                    No files match your search criteria
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredMediaFiles.map((media) => (
+                  <motion.div
+                    key={media._id.toString()}
+                    variants={item}
+                    className="group relative bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden hover:border-blue-500 dark:hover:border-blue-500/50 transition-colors shadow-sm hover:shadow-md"
+                    onClick={() => handleRowClick(media)}
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="aspect-video bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                      <div className={`w-12 h-12 flex items-center justify-center rounded-full ${
+                        media.mimeType.includes('audio') 
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
+                          : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+                      }`}>
+                        {media.mimeType.includes('audio') ? (
+                          <FileAudio className="h-6 w-6" />
+                        ) : (
+                          <FileVideo className="h-6 w-6" />
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="p-4">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+                        {media.name}
+                      </h3>
+                      
+                      <div className="mt-2 space-y-1.5">
+                        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                          <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                          {formatDate(media._creationTime)}
+                        </div>
+                        {media.duration && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Duration: {formatDuration(media.duration)}
+                          </p>
+                        )}
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Size: {formatFileSize(media.size)}
+                        </p>
+                      </div>
+                      
+                      <div className="mt-3">
                         {getStatusBadge(media.transcriptionStatus)}
-                      </td>
-                    </motion.tr>
-                  ))}
-                </motion.tbody>
-              </table>
-              
-              {filteredMediaFiles.length === 0 && (
-                <div className="py-12 text-center text-gray-500 dark:text-gray-400 italic">
-                  No files match your search criteria
-                </div>
-              )}
-            </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+                
+                {filteredMediaFiles.length === 0 && (
+                  <div className="col-span-full py-12 text-center text-gray-500 dark:text-gray-400 italic">
+                    No files match your search criteria
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
