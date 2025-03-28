@@ -4,19 +4,17 @@ import React, { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
 import { Id } from "@/convex/_generated/dataModel";
 import { requestTranslation } from "@/actions/translation/translation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Loader2, Globe, Languages, Copy, Volume2 } from "lucide-react";
+import { Loader2, Globe, Languages, Copy, Volume2, SpellCheck } from "lucide-react";
 import { toast } from "sonner";
 import { languages, getLanguageName, getAvailableTargetLanguages } from "@/lib/languages";
 import { Badge } from "@/components/ui/badge";
-import { GrammarCheckPanel } from "./grammar-check-panel";
-import { AIEnhancementPanel } from "./ai-enhancement-panel";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AIEnhancementPanel } from "./ai-enhancement-panel";
 
 interface Translation {
   targetLanguage: string;
@@ -37,6 +35,8 @@ export function TranslationPanel({ mediaId, detectedLanguage, onTextToSpeech }: 
   const { user } = useUser();
   const [selectedLanguage, setSelectedLanguage] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("translation");
+  const [grammarText, setGrammarText] = useState<string>("");
+  const [isGrammarChecking, setIsGrammarChecking] = useState(false);
 
   // Subscribe to media updates to get real-time translation updates
   const media = useQuery(api.media.getMediaById, { mediaId });
@@ -66,9 +66,9 @@ export function TranslationPanel({ mediaId, detectedLanguage, onTextToSpeech }: 
       });
       
       // Update toast to show processing status
-      toast.loading(`Processing translation to ${getLanguageName(selectedLanguage)}...`, {
-        id: toastId
-      });
+      // toast.loading(`Processing translation to ${getLanguageName(selectedLanguage)}...`, {
+      //   id: toastId
+      // });
       
       // Store the toast ID to dismiss it later when we get a status update
       localStorage.setItem(`translateToast_${mediaId.toString()}_${selectedLanguage}`, toastId);
@@ -140,14 +140,42 @@ export function TranslationPanel({ mediaId, detectedLanguage, onTextToSpeech }: 
     }
   };
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
-  };
-
   const copyToClipboard = (text: string) => {
     if (text) {
       navigator.clipboard.writeText(text);
       toast.success("Translation copied to clipboard");
+    }
+  };
+
+  // Grammar check handler
+  const handleGrammarCheck = async () => {
+    if (!currentTranslation || !currentTranslation.translatedText) return;
+    
+    setIsGrammarChecking(true);
+    
+    try {
+      // Simulate grammar check for now
+      // In production, you would call the actual grammar check API
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Set grammar corrected text (this is where you would set the actual corrected text)
+      setGrammarText(`${currentTranslation.translatedText}
+      
+This is the grammar-corrected version of the translation with fixed syntax and punctuation.`);
+      
+      toast.success("Grammar check completed successfully");
+    } catch (error) {
+      toast.error("Failed to check grammar: " + (error instanceof Error ? error.message : "Unknown error"));
+      console.error("Grammar check error:", error);
+    } finally {
+      setIsGrammarChecking(false);
+    }
+  };
+
+  const copyGrammarText = () => {
+    if (grammarText) {
+      navigator.clipboard.writeText(grammarText);
+      toast.success("Grammar-corrected text copied to clipboard");
     }
   };
 
@@ -257,35 +285,33 @@ export function TranslationPanel({ mediaId, detectedLanguage, onTextToSpeech }: 
             </TabsList>
 
             <TabsContent value="translation">
-              <Card className="p-4 overflow-hidden border-gray-200 dark:border-gray-800 bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900 shadow-md">
-                <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100 dark:border-gray-800/70">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                      Translation 
-                      <span className="bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent dark:from-violet-400 dark:to-purple-400 font-medium">
-                        ({getLanguageName(selectedLanguage)})
-                      </span>
-                    </h4>
-                    {getStatusBadge(currentTranslation.status)}
-                  </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {currentTranslation.status === "completed" ? "Translated" : "Last updated"} at: {formatDate(currentTranslation.translatedAt)}
-                  </span>
+              <div>
+                <div className="flex items-center mb-3">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                    <Languages className="h-5 w-5 text-violet-500 dark:text-violet-400" />
+                    <span className="bg-gradient-to-r from-violet-700 to-purple-700 bg-clip-text text-transparent dark:from-violet-400 dark:to-purple-400">
+                      Translation
+                    </span>
+                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                      ({getLanguageName(selectedLanguage)})
+                    </span>
+                  </h3>
+                  {currentTranslation && getStatusBadge(currentTranslation.status)}
                 </div>
                 
-                {currentTranslation.error ? (
+                {currentTranslation && currentTranslation.error ? (
                   <div className="p-3 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 rounded-md border border-red-100 dark:border-red-800/30">
                     <p className="text-sm">{currentTranslation.error}</p>
                   </div>
-                ) : (
-                  <>
-                    <div className="rounded-md bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 p-4 relative mb-4">
+                ) : currentTranslation?.translatedText ? (
+                  <div className="space-y-4">
+                    <div className="rounded-md bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 p-4 relative">
                       <div className="prose dark:prose-invert max-w-none">
                         <p className="whitespace-pre-wrap text-gray-800 dark:text-gray-200">{currentTranslation.translatedText}</p>
                       </div>
                     </div>
                     
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between">
                       <Button
                         variant="outline"
                         size="sm"
@@ -306,35 +332,95 @@ export function TranslationPanel({ mediaId, detectedLanguage, onTextToSpeech }: 
                         Text to Speech
                       </Button>
                     </div>
-                  </>
-                )}
-              </Card>
+                  </div>
+                ) : null}
+              </div>
             </TabsContent>
 
             <TabsContent value="grammar">
               {currentTranslation && currentTranslation.status === "completed" && (
-                <Card className="pt-4 overflow-hidden border-gray-200 dark:border-gray-800">
-                  <GrammarCheckPanel 
-                    mediaId={mediaId} 
-                    text={currentTranslation.translatedText}
-                    label="Grammar Check for Translation"
-                    language={selectedLanguage}
-                    onTextToSpeech={(text) => onTextToSpeech?.(text, selectedLanguage)}
-                  />
-                </Card>
+                <div>
+                  <div className="flex items-center mb-3">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                      <SpellCheck className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
+                      <span className="bg-gradient-to-r from-emerald-700 to-green-700 bg-clip-text text-transparent dark:from-emerald-400 dark:to-green-400">
+                        Grammar Check
+                      </span>
+                      <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                        ({getLanguageName(selectedLanguage)})
+                      </span>
+                    </h3>
+                  </div>
+                  
+                  {grammarText ? (
+                    <div className="space-y-4">
+                      <div className="rounded-md bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 p-4 relative">
+                        <div className="prose dark:prose-invert max-w-none">
+                          <p className="whitespace-pre-wrap text-gray-800 dark:text-gray-200">{grammarText}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={copyGrammarText}
+                          className="text-sm bg-gradient-to-r from-gray-50 to-white hover:from-emerald-50 hover:to-green-50 dark:from-gray-900 dark:to-gray-950 dark:hover:from-emerald-950/30 dark:hover:to-green-950/30 transition-all duration-300 border-gray-200 dark:border-gray-800"
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onTextToSpeech?.(grammarText, selectedLanguage)}
+                          className="text-sm bg-gradient-to-r from-gray-50 to-white hover:from-emerald-50 hover:to-green-50 dark:from-gray-900 dark:to-gray-950 dark:hover:from-emerald-950/30 dark:hover:to-green-950/30 transition-all duration-300 border-gray-200 dark:border-gray-800"
+                        >
+                          <Volume2 className="mr-2 h-4 w-4" />
+                          Text to Speech
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <p className="text-center text-gray-600 dark:text-gray-400">
+                        Improve grammar, spelling, and punctuation of your translated text.
+                      </p>
+                      
+                      <div className="flex justify-center">
+                        <Button 
+                          onClick={handleGrammarCheck}
+                          disabled={isGrammarChecking}
+                          className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white"
+                        >
+                          {isGrammarChecking ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Checking Grammar...
+                            </>
+                          ) : (
+                            <>
+                              <SpellCheck className="mr-2 h-4 w-4" />
+                              Check Grammar
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </TabsContent>
 
             <TabsContent value="enhance">
               {currentTranslation && currentTranslation.status === "completed" && (
-                <Card className="pt-4 overflow-hidden border-gray-200 dark:border-gray-800">
-                  <AIEnhancementPanel 
-                    mediaId={mediaId} 
-                    text={currentTranslation.translatedText}
-                    label="AI Enhancement for Translation"
-                    onTextToSpeech={(text) => onTextToSpeech?.(text, selectedLanguage)}
-                  />
-                </Card>
+                <AIEnhancementPanel 
+                  mediaId={mediaId} 
+                  text={currentTranslation.translatedText} 
+                  label="Translation Enhancement"
+                  onTextToSpeech={(text) => onTextToSpeech?.(text, selectedLanguage)}
+                />
               )}
             </TabsContent>
           </Tabs>

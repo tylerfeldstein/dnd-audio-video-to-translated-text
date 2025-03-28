@@ -11,7 +11,6 @@ import { Loader2, AlertTriangle, SpellCheck, Copy, CheckCircle2, Volume2 } from 
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { Id } from "@/convex/_generated/dataModel";
 
 interface Correction {
   message: string;
@@ -21,7 +20,6 @@ interface Correction {
 }
 
 interface GrammarCheckPanelProps {
-  mediaId: Id<"media">;
   text?: string;
   label?: string;
   language?: string;
@@ -73,7 +71,7 @@ export function GrammarCheckPanel({ text = "", label, language, onTextToSpeech }
       setJobId(newJobId);
       
       // Update toast to processing
-      toast.loading("Processing grammar check...", { id: toastId });
+      // toast.loading("Processing grammar check...", { id: toastId });
       
       // Store the toast ID to dismiss it later when we get a status update
       if (newJobId) {
@@ -115,7 +113,7 @@ export function GrammarCheckPanel({ text = "", label, language, onTextToSpeech }
       setIsChecking(false);
     } else if (grammarCheck.status === "processing" && toastId) {
       // Update the processing toast to ensure it's showing the right message
-      toast.loading("Processing grammar check...", { id: toastId });
+      // toast.loading("Processing grammar check...", { id: toastId });
     }
   }, [grammarCheck, jobId]);
 

@@ -27,6 +27,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { TranslationPanel } from "./translation-panel";
 import { GrammarCheckPanel } from "./grammar-check-panel";
 import { AIEnhancementPanel } from "./ai-enhancement-panel";
+import { TtsHighlightPanel } from "./tts-highlight/tts-highlight-panel";
 import { ConvexReactClient } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -942,7 +943,7 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
             onValueChange={setActiveTab}
             className="w-full space-y-4"
           >
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 p-1 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-950 rounded-lg">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 p-1 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-950 rounded-lg">
               <TabsTrigger 
                 value="media" 
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white dark:data-[state=active]:from-blue-600 dark:data-[state=active]:to-indigo-600 transition-all duration-300"
@@ -976,6 +977,13 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white dark:data-[state=active]:from-blue-600 dark:data-[state=active]:to-indigo-600 transition-all duration-300"
               >
                 Text to Speech
+              </TabsTrigger>
+              <TabsTrigger 
+                value="tts-highlight" 
+                disabled={!showTranscriptionTabs}
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white dark:data-[state=active]:from-blue-600 dark:data-[state=active]:to-indigo-600 transition-all duration-300"
+              >
+                Word Highlighting
               </TabsTrigger>
             </TabsList>
 
@@ -1207,7 +1215,6 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
                   <Card>
                     <CardContent className="pt-6 bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900/90">
                       <GrammarCheckPanel 
-                        mediaId={media._id} 
                         text={media.transcriptionText} 
                         label="Grammar Check"
                         language={media.detectedLanguage}
@@ -1569,6 +1576,17 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
                     </Card>
                   </div>
                 </div>
+              )}
+            </TabsContent>
+
+            {/* TTS Highlight Tab */}
+            <TabsContent value="tts-highlight" className="space-y-4">
+              {media.transcriptionStatus === "completed" && (
+                <TtsHighlightPanel 
+                  text={media.transcriptionText} 
+                  label="Word-Level Text Highlighting"
+                  onTextToSpeech={(text) => sendToTextToSpeech(text, media.detectedLanguage)}
+                />
               )}
             </TabsContent>
           </Tabs>
