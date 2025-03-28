@@ -7,10 +7,11 @@ import { Card } from "@/components/ui/card";
 import { requestGrammarCorrection } from "@/actions/grammerChecker/grammar";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Loader2, AlertTriangle, SpellCheck, Copy, CheckCircle2 } from "lucide-react";
+import { Loader2, AlertTriangle, SpellCheck, Copy, CheckCircle2, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
+import { Id } from "@/convex/_generated/dataModel";
 
 interface Correction {
   message: string;
@@ -20,12 +21,14 @@ interface Correction {
 }
 
 interface GrammarCheckPanelProps {
+  mediaId: Id<"media">;
   text?: string;
   label?: string;
-  language?: string; // Language code (e.g., 'en', 'es', 'fr')
+  language?: string;
+  onTextToSpeech?: (text: string, language?: string) => void;
 }
 
-export function GrammarCheckPanel({ text = "", label, language }: GrammarCheckPanelProps) {
+export function GrammarCheckPanel({ text = "", label, language, onTextToSpeech }: GrammarCheckPanelProps) {
   const { user } = useUser();
   const [jobId, setJobId] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
@@ -258,15 +261,27 @@ export function GrammarCheckPanel({ text = "", label, language }: GrammarCheckPa
                       </div>
                       <div className="p-4">
                         <p className="whitespace-pre-wrap text-sm mb-3 text-gray-800 dark:text-gray-200 leading-relaxed">{correctedText}</p>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={copyToClipboard}
-                          className="bg-white hover:bg-emerald-50 dark:bg-gray-900 dark:hover:bg-emerald-900/20 border-gray-200 dark:border-gray-800 text-emerald-600 dark:text-emerald-400 transition-colors"
-                        >
-                          <Copy className="h-3.5 w-3.5 mr-1.5" />
-                          Copy corrected text
-                        </Button>
+                        <div className="mt-3 flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={copyToClipboard}
+                            className="flex items-center gap-1 text-xs bg-gradient-to-r from-gray-50 to-white hover:from-emerald-50 hover:to-green-50 dark:from-gray-900 dark:to-gray-950 dark:hover:from-emerald-950/30 dark:hover:to-green-950/30 transition-all duration-300 border-gray-200 dark:border-gray-800"
+                          >
+                            <Copy className="h-3.5 w-3.5" /> Copy corrected text
+                          </Button>
+                          {onTextToSpeech && correctedText && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs rounded-md"
+                              onClick={() => onTextToSpeech?.(correctedText || text || '', language)}
+                            >
+                              <Volume2 className="mr-1 h-3 w-3" />
+                              Text to Speech
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </motion.div>
                     

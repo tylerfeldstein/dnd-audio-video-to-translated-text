@@ -1,5 +1,5 @@
 ---
-description: 
+description: Agent Kit full tutorial with examples from other projects. 
 globs: 
 alwaysApply: false
 ---
@@ -10,11 +10,11 @@ Enable your Agents to wait for human input.
 
 Agents such as Support Agents, Coding or Research Agents might require human oversight.
 
-By combining AgentKit with Inngest, you can create [Tools](/concepts/tools) that can wait for human input.
+By combining AgentKit with Inngest, you can create [Tools](mdc:concepts/tools) that can wait for human input.
 
 ## Creating a "Human in the Loop" tool
 
-"Human in the Loop" tools are implemented using Inngest's [`waitForEvent()`](https://www.inngest.com/docs/features/inngest-functions/steps-workflows/wait-for-event) step method:
+"Human in the Loop" tools are implemented using Inngest's [`waitForEvent()`](mdc:https:/www.inngest.com/docs/features/inngest-functions/steps-workflows/wait-for-event) step method:
 
 ```ts
 import { createTool } from "@inngest/agent-kit";
@@ -113,7 +113,7 @@ const supportNetwork = createNetwork({
 
 <Info>
   You can find the complete example code in the
-  [examples/support-agent-human-in-the-loop](https://github.com/inngest/agent-kit/tree/main/examples/support-agent-human-in-the-loop)
+  [examples/support-agent-human-in-the-loop](mdc:https:/github.com/inngest/agent-kit/tree/main/examples/support-agent-human-in-the-loop)
   directory.
 </Info>
 
@@ -243,7 +243,7 @@ Our `ask_developer` tool will now wait for a `"developer.response"` event to be 
 
 The result of the `ask_developer` tool will be returned to the `Technical Support` Agent.
 
-Look at the Inngest [`step.waitForEvent()`](https://www.inngest.com/docs/features/inngest-functions/steps-workflows/wait-for-event) documentation for more details and examples.
+Look at the Inngest [`step.waitForEvent()`](mdc:https:/www.inngest.com/docs/features/inngest-functions/steps-workflows/wait-for-event) documentation for more details and examples.
 
 ### Try it out
 
@@ -260,10 +260,10 @@ Source: https://agentkit.inngest.com/advanced-patterns/mcp
 
 Provide your Agents with MCP Servers as tools
 
-AgentKit supports using [Claude's Model Context Protocol](https://modelcontextprotocol.io/) as tools.
+AgentKit supports using [Claude's Model Context Protocol](mdc:https:/modelcontextprotocol.io) as tools.
 
 Using MCP as tools allows you to use any MCP server as a tool in your AgentKit network, enabling your Agent
-to access thousands of pre-built tools to interact with. Our integration with [Smithery](https://smithery.ai/)
+to access thousands of pre-built tools to interact with. Our integration with [Smithery](mdc:https:/smithery.ai)
 provides a registry of MCP servers for common use cases, with more than 2,000 servers across multiple use cases.
 
 ## Using MCP as tools
@@ -366,7 +366,7 @@ The `mcpServers` parameter allows you to configure Model Context Protocol server
 ## Examples
 
 <Card title="Neon Assistant Agent (using MCP)" href="https://github.com/inngest/agent-kit/tree/main/examples/mcp-neon-agent/#readme" icon="github">
-  This examples shows how to use the [Neon MCP Smithery Server](https://smithery.ai/server/neon/) to build a Neon Assistant Agent that can help you manage your Neon databases.
+  This examples shows how to use the [Neon MCP Smithery Server](mdc:https:/smithery.ai/server/neon) to build a Neon Assistant Agent that can help you manage your Neon databases.
 
   <br />
 
@@ -386,14 +386,14 @@ Source: https://agentkit.inngest.com/advanced-patterns/multi-steps-tools
 
 Use multi-steps tools to create more complex Agents.
 
-In this guide, we'll learn how to create a multi-steps tool that can be used in your AgentKit [Tools](/concepts/tools) to reliably perform complex operations.
+In this guide, we'll learn how to create a multi-steps tool that can be used in your AgentKit [Tools](mdc:concepts/tools) to reliably perform complex operations.
 
 By combining your AgentKit network with Inngest, each step of your tool will be **retried automatically** and you'll be able to **configure concurrency and throttling**.
 
 <Info>
   **Prerequisites**
 
-  Your AgentKit network [must be configured with Inngest](/getting-started/local-development#1-install-the-inngest-package).
+  Your AgentKit network [must be configured with Inngest](mdc:getting-started/local-development#1-install-the-inngest-package).
 </Info>
 
 ## Creating a multi-steps tool
@@ -491,7 +491,7 @@ const server = createServer({
 server.listen(3010, () => console.log("Agent kit running!"));
 ```
 
-We first import our `researchWebTool` function and pass it to the `deepResearchAgent` [`tools` array](/reference/create-agent#param-tools).
+We first import our `researchWebTool` function and pass it to the `deepResearchAgent` [`tools` array](mdc:reference/create-agent#param-tools).
 
 Finally, we also need to pass the `researchWebTool` function to the `createServer()`'s `functions` array.
 
@@ -513,7 +513,7 @@ Source: https://agentkit.inngest.com/advanced-patterns/multitenancy
 
 Configure capacity based on users or organizations.
 
-As discussed in the [deployment guide](/concepts/deployment), moving an AgentKit network into users' hands requires configuring usage limits.
+As discussed in the [deployment guide](mdc:concepts/deployment), moving an AgentKit network into users' hands requires configuring usage limits.
 
 To avoid having one user's usage affect another, you can configure multi-tenancy.
 
@@ -523,7 +523,7 @@ It can be easily configured on your AgentKit network using Inngest.
 <Info>
   **Prerequisites**
 
-  Your AgentKit network [must be configured with Inngest](/getting-started/local-development#1-install-the-inngest-package).
+  Your AgentKit network [must be configured with Inngest](mdc:getting-started/local-development#1-install-the-inngest-package).
 </Info>
 
 ## Configuring Multi-tenancy
@@ -624,7 +624,7 @@ server.listen(3010, () => console.log("Agent kit running!"));
 
 Your AgentKit network will now be limited to 10 concurrent requests per user.
 
-The same can be done to add [throttling](https://www.inngest.com/docs/guides/throttling?ref=agentkit-docs-multitenancy), [rate limiting](https://www.inngest.com/docs/guides/rate-limiting?ref=agentkit-docs-multitenancy) or [priority](https://www.inngest.com/docs/guides/priority?ref=agentkit-docs-multitenancy).
+The same can be done to add [throttling](mdc:https:/www.inngest.com/docs/guides/throttling?ref=agentkit-docs-multitenancy), [rate limiting](mdc:https:/www.inngest.com/docs/guides/rate-limiting?ref=agentkit-docs-multitenancy) or [priority](mdc:https:/www.inngest.com/docs/guides/priority?ref=agentkit-docs-multitenancy).
 
 ## Going further
 
@@ -647,7 +647,7 @@ The default retry policy is to retry 4 times with exponential backoff and can be
 <Info>
   **Prerequisites**
 
-  Your AgentKit network [must be configured with Inngest](/getting-started/local-development#1-install-the-inngest-package).
+  Your AgentKit network [must be configured with Inngest](mdc:getting-started/local-development#1-install-the-inngest-package).
 </Info>
 
 ## Configuring Retries
@@ -947,7 +947,7 @@ When the network runs:
 
 ## Error Handling
 
-When deployed to [Ingnest](https://www.inngest.com), AgentKit provides built-in error handling:
+When deployed to [Ingnest](mdc:https:/www.inngest.com), AgentKit provides built-in error handling:
 
 * Automatic retries for failed agent executions
 * State persistence between retries
@@ -961,25 +961,25 @@ Source: https://agentkit.inngest.com/changelog/overview
 Recent releases, new features, and fixes.
 
 <Update label="2025-03-11" description="v0.5.0">
-  * Introducing support for [Grok models](/reference/model-grok)
-  * Adding support for [Gemini latest models](/reference/model-gemini)
+  * Introducing support for [Grok models](mdc:reference/model-grok)
+  * Adding support for [Gemini latest models](mdc:reference/model-gemini)
 </Update>
 
 <Update label="2025-03-06" description="v0.4.0">
   * Add support for model hyper params (ex: temperature, top\_p, etc)
     * Breaking change: `anthropic()` `max_tokens` options has been moved in `defaultParameters`
   * Add support OpenAI o3-mini, gpt-4.5, and more
-  * [Integration with Browserbase](/integrations/browserbase)
+  * [Integration with Browserbase](mdc:integrations/browserbase)
 </Update>
 
 <Update label="2025-02-19" description="v0.3.0">
   * remove `server` export to allow non-Node runtimes
   * allow tools with no parameters
-  * [Integration with E2B Code Interpreter](/integrations/e2b)
+  * [Integration with E2B Code Interpreter](mdc:integrations/e2b)
 </Update>
 
 <Update label="2025-01-29" description="v0.2.2">
-  * Allow specifying [Inngest functions as tools](/advanced-patterns/multi-steps-tools)
+  * Allow specifying [Inngest functions as tools](mdc:advanced-patterns/multi-steps-tools)
   * Inngest is now an optional dependency
 </Update>
 
@@ -1029,15 +1029,15 @@ Source: https://agentkit.inngest.com/concepts/agents
 
 Create agents to accomplish specific tasks with tools inside a network.
 
-Agents are the core of AgentKit. Agents are *stateless* entities with a defined goal and an optional set of [Tools](/concepts/tools) that can be used to accomplish a goal.
+Agents are the core of AgentKit. Agents are *stateless* entities with a defined goal and an optional set of [Tools](mdc:concepts/tools) that can be used to accomplish a goal.
 
-Agents can be called individually or, more powerfully, composed into a [Network](/concepts/networks) with multiple agents that can work together with persisted [State](/concepts/state).
+Agents can be called individually or, more powerfully, composed into a [Network](mdc:concepts/networks) with multiple agents that can work together with persisted [State](mdc:concepts/state).
 
-At the most basic level, an Agent is a wrapper around a specific provider's [model](/concepts/models), OpenAI gpt-4 for example, and a set of of [tools](/concepts/tools).
+At the most basic level, an Agent is a wrapper around a specific provider's [model](mdc:concepts/models), OpenAI gpt-4 for example, and a set of of [tools](mdc:concepts/tools).
 
 ## Creating an Agent
 
-To create a simple Agent, all that you need is a `name`, `system` prompt and a `model`. All configuration options are detailed in the `createAgent` [reference](/reference/agent).
+To create a simple Agent, all that you need is a `name`, `system` prompt and a `model`. All configuration options are detailed in the `createAgent` [reference](mdc:reference/agent).
 
 Here is a simple agent created using the `createAgent` function:
 
@@ -1058,7 +1058,7 @@ const codeWriterAgent = createAgent({
 
 <Tip>
   While `system` prompts can be static strings, they are more powerful when they
-  are [dynamic system prompts](#dynamic-system-prompts) defined as callbacks
+  are [dynamic system prompts](mdc:#dynamic-system-prompts) defined as callbacks
   that can add additional context at runtime.
 </Tip>
 
@@ -1074,7 +1074,7 @@ console.log(output);
 
 <Tip>
   When including your Agent in a Network, a `description` is required. Learn
-  more about [using Agents in Networks here](#using-agents-in-networks).
+  more about [using Agents in Networks here](mdc:#using-agents-in-networks).
 </Tip>
 
 {/* TODO - Compare to OpenAI sdk call */}
@@ -1083,7 +1083,7 @@ console.log(output);
 
 ## Adding tools
 
-[Tools](/concepts/tools) are functions that extend the capabilities of an Agent. Along with the prompt (see `run()`), Tools are included in calls to the language model through features like OpenAI's "[function calling](https://platform.openai.com/docs/guides/function-calling)" or Claude's "[tool use](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)."
+[Tools](mdc:concepts/tools) are functions that extend the capabilities of an Agent. Along with the prompt (see `run()`), Tools are included in calls to the language model through features like OpenAI's "[function calling](mdc:https:/platform.openai.com/docs/guides/function-calling)" or Claude's "[tool use](mdc:https:/docs.anthropic.com/en/docs/build-with-claude/tool-use)."
 
 Tools are defined using the `createTool` function and are passed to agents via the `tools` parameter:
 
@@ -1112,9 +1112,9 @@ const supportAgent = createAgent({
 });
 ```
 
-When `run()` is called, any step that the model decides to call is immediately executed before returning the output. Read the "[How agents work](#how-agents-work)" section for additional information.
+When `run()` is called, any step that the model decides to call is immediately executed before returning the output. Read the "[How agents work](mdc:#how-agents-work)" section for additional information.
 
-Learn more about Tools in [this guide](/concepts/tools).
+Learn more about Tools in [this guide](mdc:concepts/tools).
 
 ## How Agents work
 
@@ -1123,23 +1123,23 @@ Agents themselves are relatively simple. When you call `run()`, there are severa
 <Steps>
   <Step title="Preparing the prompts">
     The initial messages are created using the `system` prompt, the `run()` user
-    prompt, and [Network State](/concepts/network-state), if the agent is part
-    of a [Network](/concepts/networks).
+    prompt, and [Network State](mdc:concepts/network-state), if the agent is part
+    of a [Network](mdc:concepts/networks).
 
     <Info>
-      For added control, you can dynamically modify the Agent's prompts before the next step using the `onStart` [lifecycle hook](#lifecycle-hooks).
+      For added control, you can dynamically modify the Agent's prompts before the next step using the `onStart` [lifecycle hook](mdc:#lifecycle-hooks).
     </Info>
   </Step>
 
   <Step title="Inference call">
     {/* TODO - Update this when Inngest isn't a requirement */}
 
-    An inference call is made to the provided [`model`](/concepts/models) using Inngest's [`step.ai`](https://www.inngest.com/docs/features/inngest-functions/steps-workflows/step-ai-orchestration#step-tools-step-ai). `step.ai` automatically retries on failure and caches the result for durability.
+    An inference call is made to the provided [`model`](mdc:concepts/models) using Inngest's [`step.ai`](mdc:https:/www.inngest.com/docs/features/inngest-functions/steps-workflows/step-ai-orchestration#step-tools-step-ai). `step.ai` automatically retries on failure and caches the result for durability.
 
     The result is parsed into an `InferenceResult` object that contains all messages, tool calls and the raw API response from the model.
 
     <Info>
-      To modify the result prior to calling tools, use the optional `onResponse` [lifecycle hook](#lifecycle-hooks).
+      To modify the result prior to calling tools, use the optional `onResponse` [lifecycle hook](mdc:#lifecycle-hooks).
     </Info>
   </Step>
 
@@ -1147,7 +1147,7 @@ Agents themselves are relatively simple. When you call `run()`, there are severa
     If the model decides to call one of the available `tools`, the Tool is automatically called.
 
     <Info>
-      After tool calling is complete, the `onFinish` [lifecycle hook](#lifecycle-hooks) is called with the updated `InferenceResult`. This enables you to modify or inspect the output of the called tools.
+      After tool calling is complete, the `onFinish` [lifecycle hook](mdc:#lifecycle-hooks) is called with the updated `InferenceResult`. This enables you to modify or inspect the output of the called tools.
     </Info>
   </Step>
 
@@ -1178,16 +1178,16 @@ const agent = createAgent({
 });
 ```
 
-As mentioned in the "[How Agents work](#how-agents-work)" section, there are a few lifecycle hooks that can be defined on the Agent's `lifecycle` options object.
+As mentioned in the "[How Agents work](mdc:#how-agents-work)" section, there are a few lifecycle hooks that can be defined on the Agent's `lifecycle` options object.
 
-* Dynamically alter prompts using Network [State](/concepts/state) or the Network's history.
+* Dynamically alter prompts using Network [State](mdc:concepts/state) or the Network's history.
 * Parse output of model after an inference call.
 
-Learn more about lifecycle hooks and how to define them in [this reference](/reference/create-agent#lifecycle).
+Learn more about lifecycle hooks and how to define them in [this reference](mdc:reference/create-agent#lifecycle).
 
 ## System prompts
 
-An Agent's system prompt can be defined as a string or an async callback. When Agents are part of a [Network](/concepts/networks), the Network [State](/concepts/state) is passed as an argument to create dynamic prompts, or instructions, based on history or the outputs of other Agents.
+An Agent's system prompt can be defined as a string or an async callback. When Agents are part of a [Network](mdc:concepts/networks), the Network [State](mdc:concepts/state) is passed as an argument to create dynamic prompts, or instructions, based on history or the outputs of other Agents.
 
 ### Dynamic system prompts
 
@@ -1239,11 +1239,11 @@ const codeWriterAgent = createAgent({
 
 ## Using Agents in Networks
 
-Agents are the most powerful when combined into [Networks](/concepts/networks). Networks include [state](/concepts/state) and [routers](/concepts/routers) to create stateful workflows that can enable Agents to work together to accomplish larger goals.
+Agents are the most powerful when combined into [Networks](mdc:concepts/networks). Networks include [state](mdc:concepts/state) and [routers](mdc:concepts/routers) to create stateful workflows that can enable Agents to work together to accomplish larger goals.
 
 ### Agent descriptions
 
-Similar to how [Tools](/concepts/tools) have a `description` that enables an LLM to decide when to call it, Agents also have an `description` parameter. This is *required* when using Agents within Networks. Here is an example of an Agent with a description:
+Similar to how [Tools](mdc:concepts/tools) have a `description` that enables an LLM to decide when to call it, Agents also have an `description` parameter. This is *required* when using Agents within Networks. Here is an example of an Agent with a description:
 
 ```ts
 const codeWriterAgent = createAgent({
@@ -1270,8 +1270,8 @@ Deploying an AgentKit network to production is straightforward but there are a f
 All the above can be easily achieved by using Inngest alongside AgentKit.
 By installing the Inngest SDK, your AgentKit network will automatically benefit from:
 
-* [**Multitenancy support**](/advanced-patterns/multitenancy) with fine grained concurrency and throttling configuration
-* **Retrieable and [parallel tool calls](/advanced-patterns/retries)** for reliable and performant tool usage
+* [**Multitenancy support**](mdc:advanced-patterns/multitenancy) with fine grained concurrency and throttling configuration
+* **Retrieable and [parallel tool calls](mdc:advanced-patterns/retries)** for reliable and performant tool usage
 * **LLM requests offloading** to improve performance and reliability for Serverless deployments
 * **Live and detailed observability** with step-by-step traces including the Agents inputs/outputs and token usage
 
@@ -1322,10 +1322,10 @@ server.listen(3010, () => console.log("Agent kit running!"));
 
 **Configuring environment variables**
 
-[Create an Inngest account](https://www.inngest.com/?ref=agentkit-docs-deployment) and open the top right menu to access your Event Key and Signing Key:
+[Create an Inngest account](mdc:https:/www.inngest.com/?ref=agentkit-docs-deployment) and open the top right menu to access your Event Key and Signing Key:
 
 <Frame caption="Create and copy an Event Key, and copy your Signing Key">
-  ![Inngest Event Key and Signing Key](https://mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/concepts/deployment/inngest-event-and-signing-keys.png)
+  ![Inngest Event Key and Signing Key](mdc:https:/mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/concepts/deployment/inngest-event-and-signing-keys.png)
 </Frame>
 
 Then configure the following environment variables into your deployment environment (*ex: AWS, Vercel, GCP*):
@@ -1345,22 +1345,22 @@ On your Inngest dashboard, click on the "Sync new app" button at the top right o
 Then, paste the deployment URL into the "App URL" by adding `/api/inngest` to the end of the URL:
 
 <Frame caption="Sync your AgentKit network deployment with the Inngest Platform">
-  ![Inngest Event Key and Signing Key](https://mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/concepts/deployment/inngest-sync-app.png)
+  ![Inngest Event Key and Signing Key](mdc:https:/mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/concepts/deployment/inngest-sync-app.png)
 </Frame>
 
 <Info>
   **You sync is failing?**
 
-  Read our [troubleshooting guide](https://www.inngest.com/docs/apps/cloud?ref=agentkit-docs-deployment#troubleshooting) for more information.
+  Read our [troubleshooting guide](mdc:https:/www.inngest.com/docs/apps/cloud?ref=agentkit-docs-deployment#troubleshooting) for more information.
 </Info>
 
 Once the sync succeeds, you can navigate to the *Functions* tabs where you will find your AgentKit network:
 
 <Frame caption="Your AgentKit network is now live and ready to use">
-  ![Inngest Event Key and Signing Key](https://mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/concepts/deployment/inngest-functions-tab.png)
+  ![Inngest Event Key and Signing Key](mdc:https:/mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/concepts/deployment/inngest-functions-tab.png)
 </Frame>
 
-Your AgentKit network can now be triggered manually from the Inngest Dashboard or [from your app using `network.run()`](/concepts/networks).
+Your AgentKit network can now be triggered manually from the Inngest Dashboard or [from your app using `network.run()`](mdc:concepts/networks).
 
 {/* ## Configuring Parallel tool calls, Multitenancy and Retries */}
 
@@ -1388,7 +1388,7 @@ Leverage different provider's models across Agents.
 
 Within AgentKit, models are adapters that wrap a given provider (ex. OpenAI, Anthropic)'s specific model version (ex. `gpt-3.5`).
 
-Each [Agent](/concepts/agents) can each select their own model to use and a [Network](/concepts/networks) can select a default model.
+Each [Agent](mdc:concepts/agents) can each select their own model to use and a [Network](mdc:concepts/networks) can select a default model.
 
 ```ts
 import { openai, anthropic, gemini } from "@inngest/agent-kit";
@@ -1514,7 +1514,7 @@ const network = createNetwork({
 
 ## List of supported models
 
-For a full list of supported models, you can always check [the models directory here](https://github.com/inngest/inngest-js/tree/main/packages/ai/src/models).
+For a full list of supported models, you can always check [the models directory here](mdc:https:/github.com/inngest/inngest-js/tree/main/packages/ai/src/models).
 
 <CodeGroup>
   ```plaintext OpenAI
@@ -1573,7 +1573,7 @@ For a full list of supported models, you can always check [the models directory 
 
 ## Contribution
 
-Is there a model that you'd like to see included in AgentKit? Open an issue, create a pull request, or chat with the team on [Discord in the #ai channel](https://www.inngest.com/community).
+Is there a model that you'd like to see included in AgentKit? Open an issue, create a pull request, or chat with the team on [Discord in the #ai channel](mdc:https:/www.inngest.com/community).
 
 <Card title="Contribute on GitHub" icon="github" href="https://github.com/inngest/agent-kit">
   Fork, clone, and open a pull request.
@@ -1585,13 +1585,13 @@ Source: https://agentkit.inngest.com/concepts/networks
 
 Combine one or more agents into a Network.
 
-Networks are **Systems of [Agents](/concepts/agents)**. Use Networks to create powerful AI workflows by combining multiple Agents.
+Networks are **Systems of [Agents](mdc:concepts/agents)**. Use Networks to create powerful AI workflows by combining multiple Agents.
 
 A network contains three components:
 
-* The [Agents](/concepts/agents) that the network can use to achieve a goal
-* A [State](/concepts/state) including past messages and a key value store, shared between Agents and the Router
-* A [Router](/concepts/routers), which chooses whether to stop or select the next agent to run in the loop
+* The [Agents](mdc:concepts/agents) that the network can use to achieve a goal
+* A [State](mdc:concepts/state) including past messages and a key value store, shared between Agents and the Router
+* A [Router](mdc:concepts/routers), which chooses whether to stop or select the next agent to run in the loop
 
 Here's a simple example:
 
@@ -1613,11 +1613,11 @@ By calling `run()`, the network runs a core loop to call one or more agents to f
 
 ## How Networks work
 
-Networks can be thought of as while loops with memory ([State](/concepts/state)) that call Agents and Tools until the Router determines that there is no more work to be done.
+Networks can be thought of as while loops with memory ([State](mdc:concepts/state)) that call Agents and Tools until the Router determines that there is no more work to be done.
 
 <Steps>
   <Step title="Create the Network of Agents">
-    You create a network with a list of available [Agents](/concepts/agents).
+    You create a network with a list of available [Agents](mdc:concepts/agents).
     Each Agent can use a different [model and inference
     provider](/concepts/models).
   </Step>
@@ -1631,18 +1631,18 @@ Networks can be thought of as while loops with memory ([State](/concepts/state))
 
     <Steps>
       <Step title="Call the Network router">
-        The [Router](/concepts/routers) decides the first Agent to run with your
+        The [Router](mdc:concepts/routers) decides the first Agent to run with your
         input.
       </Step>
 
       <Step title="Run the Agent">
         Call the Agent with your input. This also runs the agent's
-        [lifecycles](/concepts/agents#lifecycle-hooks), and any
-        [Tools](/concepts/tools) that the model decides to call.
+        [lifecycles](mdc:concepts/agents#lifecycle-hooks), and any
+        [Tools](mdc:concepts/tools) that the model decides to call.
       </Step>
 
       <Step title="Store the result">
-        Stores the result in the network's [State](/concepts/state). State can
+        Stores the result in the network's [State](mdc:concepts/state). State can
         be accessed by the Router or other Agent's Tools in future loops.
       </Step>
 
@@ -1729,7 +1729,7 @@ const network = createNetwork({
 });
 ```
 
-Refer to the [Router](/concepts/routers) documentation for more information about how to create a custom Router.
+Refer to the [Router](mdc:concepts/routers) documentation for more information about how to create a custom Router.
 
 ### Maximum iterations
 
@@ -1748,7 +1748,7 @@ const network = createNetwork({
 ```
 
 <Info>
-  Specifying a `maxIter` option is useful when using a [Default Routing Agent](/concepts/routers#default-routing-agent-autonomous-routing) or a [Hybrid Router](/concepts/routers#hybrid-code-and-agent-routers-semi-supervised-routing) to avoid infinite loops.
+  Specifying a `maxIter` option is useful when using a [Default Routing Agent](mdc:concepts/routers#default-routing-agent-autonomous-routing) or a [Hybrid Router](mdc:concepts/routers#hybrid-code-and-agent-routers-semi-supervised-routing) to avoid infinite loops.
 
   A Routing Agent or Hybrid Router rely on LLM calls to make decisions, which means that they can sometimes fail to identify a final condition.
 </Info>
@@ -1761,7 +1761,7 @@ However, please note that the `maxIter` option can prevent the `defaultRouter` f
 
 ## Providing a default State
 
-A Network can specify an optional `defaultState` setting to provide a default [State](/concepts/state).
+A Network can specify an optional `defaultState` setting to provide a default [State](mdc:concepts/state).
 
 ```tsx
 import { createNetwork } from '@inngest/agent-kit';
@@ -1784,7 +1784,7 @@ Source: https://agentkit.inngest.com/concepts/routers
 
 Customize how calls are routed between Agents in a Network.
 
-The purpose of a Network's **Router** is to decide what [Agent](/concepts/agents) to call based off the current Network [State](/concepts/state).
+The purpose of a Network's **Router** is to decide what [Agent](mdc:concepts/agents) to call based off the current Network [State](mdc:concepts/state).
 
 ## What is a Router?
 
@@ -1795,13 +1795,13 @@ A router is a function that gets called after each agent runs, which decides whe
 
 The routing function gets access to everything it needs to make this decision:
 
-* The [Network](/concepts/networks) object itself, including it's [State](/concepts/state).
+* The [Network](mdc:concepts/networks) object itself, including it's [State](mdc:concepts/state).
   {/* TODO - The "stack" of agents isn't clear how this stack is created and when they are executed in relation to the router */}
-* The stack of [Agents](/concepts/agents) to be called.
+* The stack of [Agents](mdc:concepts/agents) to be called.
 * The number of times the Network has called Agents (*the number of iterations*).
 * The result from the previously called Agent in the Network's execution loop.
 
-For more information about the role of a Router in a Network, read about [how Networks work](/concepts/networks#how-networks-work).
+For more information about the role of a Router in a Network, read about [how Networks work](mdc:concepts/networks#how-networks-work).
 
 ## Using a Router
 
@@ -1812,9 +1812,9 @@ For more information about the role of a Router in a Network, read about [how Ne
 
 Providing a custom Router to your Network can be achieved using 3 different patterns:
 
-* **Writing a custom [Code-based Router](/concepts/routers#code-based-routers-supervised-routing)**: Define a function that makes decisions based on the current [State](/concepts/state).
-* **Creating a [Routing Agent](/concepts/routers#routing-agent-autonomous-routing)**: Leverages LLM calls to decide which Agents should be called next based on the current [State](/concepts/state).
-* **Writing a custom [Hybrid Router](/concepts/routers#hybrid-code-and-agent-routers-semi-supervised-routing)**: Mix code and agent-based routing to get the best of both worlds.
+* **Writing a custom [Code-based Router](mdc:concepts/routers#code-based-routers-supervised-routing)**: Define a function that makes decisions based on the current [State](mdc:concepts/state).
+* **Creating a [Routing Agent](mdc:concepts/routers#routing-agent-autonomous-routing)**: Leverages LLM calls to decide which Agents should be called next based on the current [State](mdc:concepts/state).
+* **Writing a custom [Hybrid Router](mdc:concepts/routers#hybrid-code-and-agent-routers-semi-supervised-routing)**: Mix code and agent-based routing to get the best of both worlds.
 
 ## Creating a custom Router
 
@@ -1864,7 +1864,7 @@ The available arguments can be used to build the routing patterns described belo
 ### Tips
 
 * Start simple with code-based routing for predictable behavior, then add agent-based routing for flexibility.
-* Remember that routers can access the network's [state](/concepts/state)
+* Remember that routers can access the network's [state](mdc:concepts/state)
 * You can return agents that weren't in the original network
 * The router runs after each agent call
 * Returning `undefined` stops the network's execution loop
@@ -1908,7 +1908,7 @@ Code-based routing is great when you want deterministic, predictable behavior. I
 Without a `defaultRouter` defined, the network will use the "Default Routing Agent" to decide which agent to call next.
 The "Default Routing Agent" is a Routing Agent provided by Agent Kit to handle the default routing logic.
 
-You can create your own Routing Agent by using the [`createRoutingAgent`](/reference/network-router#createroutingagent) helper function:
+You can create your own Routing Agent by using the [`createRoutingAgent`](mdc:reference/network-router#createroutingagent) helper function:
 
 ```ts
 import { createRoutingAgent } from "@inngest/agent-kit";
@@ -2015,14 +2015,14 @@ Source: https://agentkit.inngest.com/concepts/state
 
 Shared memory, history, and key-value state for Agents and Networks.
 
-State is shared memory, or context, that is be passed between different [Agents](/concepts/agents) in a [Networks](/concepts/networks). State is used to store message history and build up structured data from tools.
+State is shared memory, or context, that is be passed between different [Agents](mdc:concepts/agents) in a [Networks](mdc:concepts/networks). State is used to store message history and build up structured data from tools.
 
 State enables agent workflows to execute in a loop and contextually make decisions. Agents continuously build upon and leverage this context to complete complex tasks.
 
 AgentKit's State stores data in two ways:
 
 * **History of messages** - A list of prompts, responses, and tool calls.
-* **Fully typed state data** - Typed state that allows you to build up structured data from agent calls, then implement [deterministic state-based routing](/advanced-patterns/routing) to easily model complex agent workflows.
+* **Fully typed state data** - Typed state that allows you to build up structured data from agent calls, then implement [deterministic state-based routing](mdc:advanced-patterns/routing) to easily model complex agent workflows.
 
 Both history and state data are used automatically by the Network to store and provide context to the next Agent.
 
@@ -2030,7 +2030,7 @@ Both history and state data are used automatically by the Network to store and p
 
 The history system maintains a chronological record of all Agent interactions in your Network.
 
-Each interaction is stored as an `InferenceResult`. Refer to the [InferenceResult reference](/reference/state#inferenceresult) for more information.
+Each interaction is stored as an `InferenceResult`. Refer to the [InferenceResult reference](mdc:reference/state#inferenceresult) for more information.
 
 ## Typed state
 
@@ -2070,9 +2070,9 @@ Common uses for data include:
   finished running.
 </Tip>
 
-State, which is required by [Networks](/concepts/networks), has many uses across various AgentKit components.
+State, which is required by [Networks](mdc:concepts/networks), has many uses across various AgentKit components.
 
-Refer to the [State reference](/reference/state#reading-and-modifying-state-states-data) for more information.
+Refer to the [State reference](mdc:reference/state#reading-and-modifying-state-states-data) for more information.
 
 ## Using state in tools
 
@@ -2113,12 +2113,12 @@ Source: https://agentkit.inngest.com/concepts/tools
 
 Extending the functionality of Agents for structured output or performing tasks.
 
-Tools are functions that extend the capabilities of an [Agent](/concepts/agents). Tools have two core uses:
+Tools are functions that extend the capabilities of an [Agent](mdc:concepts/agents). Tools have two core uses:
 
 * Calling code, enabling models to interact with systems like your own database or external APIs.
 * Turning unstructured inputs into structured responses.
 
-A list of all available Tools and their configuration is sent in [an Agent's inference calls](/concepts/agents#how-agents-work) and a model may decide that a certain tool or tools should be called to complete the task. Tools are included in an Agent's calls to language models through features like OpenAI's "[function calling](https://platform.openai.com/docs/guides/function-calling)" or Claude's "[tool use](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)."
+A list of all available Tools and their configuration is sent in [an Agent's inference calls](mdc:concepts/agents#how-agents-work) and a model may decide that a certain tool or tools should be called to complete the task. Tools are included in an Agent's calls to language models through features like OpenAI's "[function calling](mdc:https:/platform.openai.com/docs/guides/function-calling)" or Claude's "[tool use](mdc:https:/docs.anthropic.com/en/docs/build-with-claude/tool-use)."
 
 ## Creating a Tool
 
@@ -2235,7 +2235,7 @@ Explore the following examples to see AgentKit Concepts (*Agents, Tools, ...*) i
 
 <CardGroup cols={2}>
   <Card title="Neon Assistant Agent (using MCP)" href="https://github.com/inngest/agent-kit/tree/main/examples/mcp-neon-agent/#readme" icon="github">
-    This examples shows how to use the [Neon MCP Smithery Server](https://smithery.ai/server/neon/) to build a Neon Assistant Agent that can help you manage your Neon databases.
+    This examples shows how to use the [Neon MCP Smithery Server](mdc:https:/smithery.ai/server/neon) to build a Neon Assistant Agent that can help you manage your Neon databases.
 
     <br />
 
@@ -2299,7 +2299,7 @@ Source: https://agentkit.inngest.com/getting-started/installation
 
 How to install AgentKit
 
-Install the AgentKit [npm package](https://www.npmjs.com/package/@inngest/agent-kit) using your favorite package manager:
+Install the AgentKit [npm package](mdc:https:/www.npmjs.com/package/@inngest/agent-kit) using your favorite package manager:
 
 <CodeGroup>
   ```shell npm
@@ -2315,7 +2315,7 @@ Install the AgentKit [npm package](https://www.npmjs.com/package/@inngest/agent-
   ```
 </CodeGroup>
 
-For a better local developement and production deployment experience, we recommend installing [Inngest](https://www.npmjs.com/package/inngest) alongside AgentKit:
+For a better local developement and production deployment experience, we recommend installing [Inngest](mdc:https:/www.npmjs.com/package/inngest) alongside AgentKit:
 
 <CodeGroup>
   ```shell npm
@@ -2349,7 +2349,7 @@ Source: https://agentkit.inngest.com/getting-started/local-development
 
 Run AgentKit locally with live traces and logs.
 
-Developing AgentKit applications locally is a breeze when combined with the [Inngest Dev Server](https://www.inngest.com/docs/dev-server).
+Developing AgentKit applications locally is a breeze when combined with the [Inngest Dev Server](mdc:https:/www.inngest.com/docs/dev-server).
 
 The Inngest Dev Server is a local development tool that provides live traces and logs for your AgentKit applications, providing a
 quicker feedback loop and full visibility into your AgentKit's state and Agent LLM calls:
@@ -2409,7 +2409,7 @@ You can start the Inngest Dev Server with the following command:
 npx inngest-cli@latest dev
 ```
 
-And navigate to the Inngest Dev Server by opening [http://127.0.0.1:8288](http://127.0.0.1:8288) in your browser.
+And navigate to the Inngest Dev Server by opening [http://127.0.0.1:8288](mdc:http:/127.0.0.1:8288) in your browser.
 
 You can now explore the Inngest Dev Server features:
 
@@ -2420,11 +2420,11 @@ You can now explore the Inngest Dev Server features:
 You can trigger your AgentKit network by clicking on the "Trigger" button in the Inngest Dev Server from the "Functions" tab.
 In the opened, add an `input` property with the input you want to pass to your AgentKit network:
 
-![Inngest Dev Server function list](https://mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-agent.png)
+![Inngest Dev Server function list](mdc:https:/mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-agent.png)
 
 Then, click on the "Run" button to trigger your AgentKit network"
 
-![Inngest Dev Server invoke function modal](https://mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-invoke.png)
+![Inngest Dev Server invoke function modal](mdc:https:/mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-invoke.png)
 
 ### Inspect AgentKit Agents token usage, input and output
 
@@ -2436,14 +2436,14 @@ By expanding the step, you can inspect the Agents:
 * The **input** provided to the Agent
 * The **output** provided by the Agent
 
-![Inngest Dev Server agent run](https://mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-agent-step-details.png)
+![Inngest Dev Server agent run](mdc:https:/mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-agent-step-details.png)
 
 <Info>
   **Tips**
 
-  You can force line breaks to **make the input and output more readable** using the following button: ![Inngest Dev Server agent run](https://mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-network-run-linebreak-btn.png)
+  You can force line breaks to **make the input and output more readable** using the following button: ![Inngest Dev Server agent run](mdc:https:/mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-network-run-linebreak-btn.png)
 
-  You can **expand the input and output view to show its full content** using the following button: ![Inngest Dev Server agent run](https://mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-network-run-expand-btn.png)
+  You can **expand the input and output view to show its full content** using the following button: ![Inngest Dev Server agent run](mdc:https:/mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-network-run-expand-btn.png)
 
   You can **update the input of an AgentKit Agent and trigger a rerun from this step** of the AgentKit network (*see below*)
 </Info>
@@ -2455,7 +2455,7 @@ On a given AgentKit Agent run, you can update the input of the Agent and trigger
 First, click on the "Rerun with new prompt" button under the input area.
 Then, the following modal will open:
 
-![Inngest Dev Server agent run](https://mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-agent-step-rerun-modal.png)
+![Inngest Dev Server agent run](mdc:https:/mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-agent-step-rerun-modal.png)
 
 
 # Quick start
@@ -2463,7 +2463,7 @@ Source: https://agentkit.inngest.com/getting-started/quick-start
 
 Learn the basics of AgentKit in a few minutes.
 
-In this tutorial you will create an [Agent](/concepts/agents) and run it within a [Network](/concepts/networks) with AgentKit.
+In this tutorial you will create an [Agent](mdc:concepts/agents) and run it within a [Network](mdc:concepts/networks) with AgentKit.
 
 <Steps>
   <Step title="Install AgentKit">
@@ -2483,7 +2483,7 @@ In this tutorial you will create an [Agent](/concepts/agents) and run it within 
       ```
     </CodeGroup>
 
-    You can always find the latest release version on [npm](https://www.npmjs.com/package/@inngest/agent-kit).
+    You can always find the latest release version on [npm](mdc:https:/www.npmjs.com/package/@inngest/agent-kit).
 
     <Accordion title="Don't have an existing project?">
       To create a new project, create a new directory then initialize using your package manager:
@@ -2505,11 +2505,11 @@ In this tutorial you will create an [Agent](/concepts/agents) and run it within 
   </Step>
 
   <Step title="Create an agent">
-    To start, we'll create our first "[Agent](/concepts/agents)." An "Agent" is an entity that has a specific role to answer questions or perform tasks (See "tools" further below).
+    To start, we'll create our first "[Agent](mdc:concepts/agents)." An "Agent" is an entity that has a specific role to answer questions or perform tasks (See "tools" further below).
 
     To start, let's create a new file, `index.ts`. Using the `createAgent` constructor, give your agent a `name`, a `description` and it's initial `system` prompt. The `name` and `description` properties are used to allow the LLM to determine which Agent to call.
 
-    You'll also specify which `model` you want the agent to use. Here we'll use Anthropic's [Claude 3.5 Haiku](https://docs.anthropic.com/en/docs/about-claude/models) model. ([Model reference](/concepts/models))
+    You'll also specify which `model` you want the agent to use. Here we'll use Anthropic's [Claude 3.5 Haiku](mdc:https:/docs.anthropic.com/en/docs/about-claude/models) model. ([Model reference](mdc:concepts/models))
 
     Your agent can be whatever you want, but in this quick start, we'll create a Postgres database administrator agent:
 
@@ -2551,7 +2551,7 @@ In this tutorial you will create an [Agent](/concepts/agents) and run it within 
     server.listen(3000, () => console.log('Agent kit running!'));
     ```
 
-    Now we can run our AgentKit server using [`npx`](https://docs.npmjs.com/cli/v8/commands/npx) and [`tsx`](https://tsx.is/) (for easy TypeScript execution).
+    Now we can run our AgentKit server using [`npx`](mdc:https:/docs.npmjs.com/cli/v8/commands/npx) and [`tsx`](mdc:https:/tsx.is) (for easy TypeScript execution).
 
     ```shell terminal
     npx tsx ./index.ts
@@ -2559,7 +2559,7 @@ In this tutorial you will create an [Agent](/concepts/agents) and run it within 
   </Step>
 
   <Step title="Test our agent">
-    To test our agent, we'll use the [Inngest dev server](https://www.inngest.com/docs/local-development) to allow us to visually debug our agents. Using `npx`, we'll start the server and point it to our AgentKit server:
+    To test our agent, we'll use the [Inngest dev server](mdc:https:/www.inngest.com/docs/local-development) to allow us to visually debug our agents. Using `npx`, we'll start the server and point it to our AgentKit server:
 
     ```shell terminal
     npx inngest-cli@latest dev -u http://localhost:3000/api/inngest
@@ -2567,11 +2567,11 @@ In this tutorial you will create an [Agent](/concepts/agents) and run it within 
 
     Now, open the dev server and select the function's tab (`http://localhost:8288/functions`) and click the "Invoke" button:
 
-    ![Inngest Dev Server function list](https://mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-agent.png)
+    ![Inngest Dev Server function list](mdc:https:/mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-agent.png)
 
     In the Invoke function modal, specify the input prompt for your agent and click the "Invoke function" button.
 
-    ![Inngest Dev Server invoke function modal](https://mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-invoke.png)
+    ![Inngest Dev Server invoke function modal](mdc:https:/mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-invoke.png)
 
     ```json Invoke payload
     {
@@ -2583,12 +2583,12 @@ In this tutorial you will create an [Agent](/concepts/agents) and run it within 
 
     You'll be redirected to watch the agent run and view the output:
 
-    ![Inngest Dev Server agent run](https://mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-agent-run.png)
+    ![Inngest Dev Server agent run](mdc:https:/mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-agent-run.png)
   </Step>
 
   <Step title="Creating a Network">
     A key benefit of AgentKit is the ability to create a system of agents called a
-    "[Network](/concepts/networks)." "Networks" are used to create stateful
+    "[Network](mdc:concepts/networks)." "Networks" are used to create stateful
     workflows with one or more Agents that can call tools.
 
     We'll start by creating a second *"Database Security"* Agent:
@@ -2612,7 +2612,7 @@ In this tutorial you will create an [Agent](/concepts/agents) and run it within 
 
     We can now create a network combining our *"Database Administrator"* and *"Database Security"* Agents, which enables us to answer more complex questions.
 
-    Create a network using the `createNetwork` constructor. Define a `name` include our agent from the previous step in the `agents` array. You must also configure the `defaultModel` for which the "[router](/concepts/routers)" will use to determine which agent to call.
+    Create a network using the `createNetwork` constructor. Define a `name` include our agent from the previous step in the `agents` array. You must also configure the `defaultModel` for which the "[router](mdc:concepts/routers)" will use to determine which agent to call.
 
     ```ts index.ts
     import { /*...*/ createNetwork } from "@inngest/agent-kit";
@@ -2636,7 +2636,7 @@ In this tutorial you will create an [Agent](/concepts/agents) and run it within 
     We'll use the same approach to test our network as we did above to test our network, with the Inngest dev server's.
 
     <Tip>
-      Networks are powerful as they include "[routing agents](/concepts/routers)" that can coordinate between a system of multiple agents, enabling networks to complete more complex tasks.
+      Networks are powerful as they include "[routing agents](mdc:concepts/routers)" that can coordinate between a system of multiple agents, enabling networks to complete more complex tasks.
     </Tip>
 
     Our network enables us to answer more complex or multiple questions such as:
@@ -2651,7 +2651,7 @@ In this tutorial you will create an [Agent](/concepts/agents) and run it within 
 
     The network will now run through the Agents to answer the questions:
 
-    ![Inngest Dev Server agent run](https://mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-network-run.png)
+    ![Inngest Dev Server agent run](mdc:https:/mintlify.s3.us-west-1.amazonaws.com/inngest/graphics/quick-start/dev-server-network-run.png)
 
     And provide the final answer in two parts:
 
@@ -2707,7 +2707,7 @@ Use AgentKit Tools and Custom Router to add agentic capabilities.
 
 ## Overview
 
-Our [Code Assistant v1](/ai-agents-in-practice/ai-workflows), relying on a RAG workflow, had limited capabilities linked to its lack of reasoning.
+Our [Code Assistant v1](mdc:ai-agents-in-practice/ai-workflows), relying on a RAG workflow, had limited capabilities linked to its lack of reasoning.
 The second version of our Code Assistant will introduce reasoning capabilities to adapt analysis based on the user's input:
 
 ```typescript
@@ -2734,15 +2734,15 @@ console.log("Analysis:", kv.get("summary"));
 
 These agentic (reasoning) capabilities are introduced by the following AgentKit concepts:
 
-* **[Tools](/concepts/tools)**: Enables [Agents](/concepts/agents) to interact with their environment (ex: file system or shared State).
-* **[Router](/concepts/router)**: Powers the flow of the conversation between Agents.
-* **[Network](/concepts/network)**: Add a shared [State](/concepts/state) to share information between Agents.
+* **[Tools](mdc:concepts/tools)**: Enables [Agents](mdc:concepts/agents) to interact with their environment (ex: file system or shared State).
+* **[Router](mdc:concepts/router)**: Powers the flow of the conversation between Agents.
+* **[Network](mdc:concepts/network)**: Add a shared [State](mdc:concepts/state) to share information between Agents.
 
 Let's learn these concepts in practice.
 
 ## Setup
 
-Similarly to the [Code Assistant v1](/ai-agents-in-practice/ai-workflows), perform the following steps to setup your project:
+Similarly to the [Code Assistant v1](mdc:ai-agents-in-practice/ai-workflows), perform the following steps to setup your project:
 
 <AccordionGroup>
   <Accordion title="1. Initialize your project" defaultOpen="true">
@@ -2825,14 +2825,14 @@ Our Code Assistant v2 introduces reasoning to perform tailored recommendations b
 
 To achieve this behavior, we will need to:
 
-* Create a `code_assistant_agent` Agent that will load a given filename from disk and plan a workflow using the following available [Agents](/concepts/agents):
+* Create a `code_assistant_agent` Agent that will load a given filename from disk and plan a workflow using the following available [Agents](mdc:concepts/agents):
   * `analysis_agent` that will analyze the code file and suggest improvements
   * `documentation_agent` that will generate documentation for the code file
 * Finally, create a `summarization_agent` Agent that will generate a summary of the suggestions made by other agents
 
 {/* _TODO: Add a diagram here_ */}
 
-Compared to our [Code Assistant v1](/ai-agents-in-practice/ai-workflows), this new version does not consist of simple retrieval and generations steps.
+Compared to our [Code Assistant v1](mdc:ai-agents-in-practice/ai-workflows), this new version does not consist of simple retrieval and generations steps.
 Instead, it introduces more flexibility by enabling LLM models to plan actions and select tools to use.
 
 Let's see how to implement the Agents.
@@ -2840,9 +2840,9 @@ Let's see how to implement the Agents.
 ### A Network of Agents
 
 Our Code Assistant v2 is composed of 4 Agents collaborating together to analyze a given code file.
-Such collaboration is made possible by using a [Network](/concepts/network) to orchestrate the Agents and share [State](/concepts/state) between them.
+Such collaboration is made possible by using a [Network](mdc:concepts/network) to orchestrate the Agents and share [State](mdc:concepts/state) between them.
 
-Unlike the [Code Assistant v1](/ai-agents-in-practice/ai-workflows), the user prompt will be passed to the network instead of an individual Agent:
+Unlike the [Code Assistant v1](mdc:ai-agents-in-practice/ai-workflows), the user prompt will be passed to the network instead of an individual Agent:
 
 ```typescript
 await network.run(
@@ -2865,7 +2865,7 @@ Let's start by implementing our Agents and registering them into the Network.
   * Enrich dynamically the Agent context with dynamic data
   * Store the Agent results in the shared State
 
-  Learn more about [Tools](/concepts/tools).
+  Learn more about [Tools](mdc:concepts/tools).
 </Note>
 
 **The Analysis and Documentation Agents**
@@ -2890,7 +2890,7 @@ Defining task specific LLM calls (Agents) is a great way to make the LLM reasoni
 
 Our `documentation_agent` and `analysis_agent` are currently stateless and need to be *connected* to the Network by saving their suggestions into the shared State.
 
-For this, we will create our first Tool using [`createTool`](/reference/create-tool):
+For this, we will create our first Tool using [`createTool`](mdc:reference/create-tool):
 
 ```typescript {2-6}
 const saveSuggestions = createTool({
@@ -2915,9 +2915,9 @@ const saveSuggestions = createTool({
 
   The `name`, `description` and `parameters` are used by the Agent to understand what the Tool does and what it expects as input.
 
-  The `handler` is the function that will be called when the Tool is used. `save_suggestions`'s handler relies on the [Network's State `kv` (key-value store)](/reference/state#reading-and-modifying-state-state-kv) API to share information with other Agents.
+  The `handler` is the function that will be called when the Tool is used. `save_suggestions`'s handler relies on the [Network's State `kv` (key-value store)](mdc:reference/state#reading-and-modifying-state-state-kv) API to share information with other Agents.
 
-  Learn more about the [createTool()](/reference/create-tool) API.
+  Learn more about the [createTool()](mdc:reference/create-tool) API.
 </Tip>
 
 The `save_suggestions` Tool is used by both `documentation_agent` and `analysis_agent` to save their suggestions into the shared State:
@@ -2995,7 +2995,7 @@ Answer with "done" when you are finished.`;
 
 The highlighted lines emphasize three important parts of the `code_assistant_agent`:
 
-* The [`system` property](/reference/create-agent#param-system) can take a function receiving the current Network state as argument, enabling more flexibility in the Agent's behavior
+* The [`system` property](mdc:reference/create-agent#param-system) can take a function receiving the current Network state as argument, enabling more flexibility in the Agent's behavior
 
   * Here, the `system` function is used to generate a prompt for the LLM based on the available Agents in the Network, enabling the LLM to plan the workflow to run
 
@@ -3047,7 +3047,7 @@ Let's now configure our Network to run the Agents with a Router.
 
 ### Assembling the Network
 
-An AgentKit [Network](/concepts/network) is defined by a set of Agents and an optional `defaultModel`:
+An AgentKit [Network](mdc:concepts/network) is defined by a set of Agents and an optional `defaultModel`:
 
 ```typescript {7-16}
 import { createNetwork, anthropic } from "@inngest/agent-kit";
@@ -3073,7 +3073,7 @@ const network = createNetwork({
   The `defaultModel` will be applied to all Agents part of the Network.
   A model can also be set on an individual Agent by setting the `model` property.
 
-  Learn more about the [Network Model configuration](/concepts/networks#model-configuration).
+  Learn more about the [Network Model configuration](mdc:concepts/networks#model-configuration).
 </Tip>
 
 Our Code Assistant v2 is missing a final piece: the Router.
@@ -3081,7 +3081,7 @@ Without a Router, the Network will not know which Agent to run next.
 
 **Implementing the Router**
 
-As stated in the [workflow overview](#overview-of-the-agentic-workflow), our Code Assistant v2 is an agentic worflow composed of the following steps:
+As stated in the [workflow overview](mdc:#overview-of-the-agentic-workflow), our Code Assistant v2 is an agentic worflow composed of the following steps:
 
 1. The `code_assistant_agent` will read the code file from disk and generate a plan of agents to run
 2. Depending on the plan, the Network will run the next Agent in the plan (*ex: `analysis_agent` and `documentation_agent`*)
@@ -3128,7 +3128,7 @@ const network = createNetwork({
 
   The provided Router function (`defaultRouter`) receives a `network` argument granting access to the Network's state and Agents.
 
-  Learn more about the [Router](/concepts/router).
+  Learn more about the [Router](mdc:concepts/router).
 </Note>
 
 Let's have a closer look at the Router implementation:
@@ -3217,7 +3217,7 @@ Let's recap what we've learned so far:
 
 * **Agentic workflows**, compared to RAG workflows, **are more flexible** and can be used to perform more complex tasks
 * **Combining multiple Agents improves the accuracy** of the LLM reasoning and can save tokens
-* **AgentKit enables to combine multiple Agents** into a [Network](/concepts/networks), connected by a common [State](/concepts/state)
+* **AgentKit enables to combine multiple Agents** into a [Network](mdc:concepts/networks), connected by a common [State](mdc:concepts/state)
 * **AgentKit's Router enables to implement our workflow with code**, keeping control over our reasoning planning
 
 ## Next steps
@@ -3239,7 +3239,7 @@ Build a custom Agent Router to autonomously solve bugs.
 
 ## Overview
 
-Our [Code Assistant v2](/ai-agents-in-practice/agentic-workflows) introduced some limited reasoning capabilities through Tools and a Network of Agents.
+Our [Code Assistant v2](mdc:ai-agents-in-practice/agentic-workflows) introduced some limited reasoning capabilities through Tools and a Network of Agents.
 This third version will transform our Code Assistant into a semi-autonomous AI Agent that can solve bugs and improve code.
 
 Our AI Agent will operate over an Express API project containing bugs:
@@ -3273,14 +3273,14 @@ Can you help me fix the following error?
 
 Our Code Assistant v3 will autonomously navigate through the codebase and fix the bug by updating the impacted files.
 
-This new version relies on previously covered concepts such as [Tools](/concepts/tools), [Agents](/concepts/agent), and [Networks](/concepts/network) but introduces
-the creation of a custom [Router Agent](/concepts/routers#routing-agent-autonomous-routing) bringing routing autonomy to the AI Agent.
+This new version relies on previously covered concepts such as [Tools](mdc:concepts/tools), [Agents](mdc:concepts/agent), and [Networks](mdc:concepts/network) but introduces
+the creation of a custom [Router Agent](mdc:concepts/routers#routing-agent-autonomous-routing) bringing routing autonomy to the AI Agent.
 
 Let's learn these concepts in practice.
 
 ## Setup
 
-Similarly to the [Code Assistant v2](/ai-agents-in-practice/agentic-workflows), perform the following steps to setup your project:
+Similarly to the [Code Assistant v2](mdc:ai-agents-in-practice/agentic-workflows), perform the following steps to setup your project:
 
 <AccordionGroup>
   <Accordion title="1. Initialize your project" defaultOpen="true">
@@ -3441,7 +3441,7 @@ const searchCode = createTool({
 <Note>
   Some notes on the highlighted lines:
 
-  * As noted in the ["Building Effective Agents" article](https://www.anthropic.com/research/building-effective-agents) from Anthropic, Tools based on file system operations are most effective when provided with absolute paths.
+  * As noted in the ["Building Effective Agents" article](mdc:https:/www.anthropic.com/research/building-effective-agents) from Anthropic, Tools based on file system operations are most effective when provided with absolute paths.
   * Tools performing action such as `writeFile` should always return a value to inform the Agent that the action has been completed.
 </Note>
 
@@ -3484,15 +3484,15 @@ Let's now implement the Router Agent that will bring the reasoning capabilities 
 
 ### Implementing the Router Agent
 
-The [Router Agent](/concepts/routers#routing-agent-autonomous-routing) is the "brain" of our Code Assistant, deciding which Agent to use based on the context.
+The [Router Agent](mdc:concepts/routers#routing-agent-autonomous-routing) is the "brain" of our Code Assistant, deciding which Agent to use based on the context.
 
-The router developed in the [Code Assistant v2](/ai-agents-in-practice/agentic-workflows) was a function that decided which Agent to call next
+The router developed in the [Code Assistant v2](mdc:ai-agents-in-practice/agentic-workflows) was a function that decided which Agent to call next
 based on the progress of the workflow. Such router made a Agent deterministic, but lacked the reasoning capabilities to autonomously orchestrate the Agents.
 
 In this version, we will provide an Agent as a router, called a Router Agent.
 By doing so, we can leverage the reasoning capabilities of the LLM to autonomously orchestrate the Agents around a given goal (here, fixing the bug).
 
-Creating a Router Agent is done by using the [`createRoutingAgent`](/reference/network-router#createroutingagent) helper function:
+Creating a Router Agent is done by using the [`createRoutingAgent`](mdc:reference/network-router#createroutingagent) helper function:
 
 ```typescript {5, 38, 70}
 import { createRoutingAgent } from "@inngest/agent-kit";
@@ -3584,8 +3584,8 @@ const router = createRoutingAgent({
 Looking at the highlighted lines, we can see that a Router Agent mixes features from regular Agents and a function Router:
 
 1. A Router Agent is a regular Agent with a `system` function that returns a prompt
-2. A Router Agent can use [Tools](/concepts/tools) to interact with the environment
-3. Finally, a Router Agent can also define lifecycle callbacks, [like Agents do](/concepts/agents#lifecycle-hooks)
+2. A Router Agent can use [Tools](mdc:concepts/tools) to interact with the environment
+3. Finally, a Router Agent can also define lifecycle callbacks, [like Agents do](mdc:concepts/agents#lifecycle-hooks)
 
 Let's now dissect how this Router Agent works:
 
@@ -3642,7 +3642,7 @@ Your Code Assistant is now running at `http://localhost:3010` and ready to help 
 
 Let's recap what we've learned so far:
 
-* **Autonomous AI Agents** can be built by using [**Router Agents**](/concepts/routers#routing-agent-autonomous-routing), which act as the "brain" of an autonomous system by orchestrating other Agents
+* **Autonomous AI Agents** can be built by using [**Router Agents**](mdc:concepts/routers#routing-agent-autonomous-routing), which act as the "brain" of an autonomous system by orchestrating other Agents
 * **Tools** provide Agents with capabilities to interact with their environment
 
 
@@ -3653,7 +3653,7 @@ Leveraging AgentKit's Agent concept to power a RAG workflow.
 
 ## Overview
 
-As discussed in the [introduction](/ai-agents-in-practice/overview), developing AI applications is a pragmatic approach requiring
+As discussed in the [introduction](mdc:ai-agents-in-practice/overview), developing AI applications is a pragmatic approach requiring
 to start simple and iterate towards complexity.
 
 Following this approach, this first version of our Code Assistant will be able to explain a given code file:
@@ -3685,7 +3685,7 @@ console.log(lastMessage({ type: "text" }).content);
 
 To implement this capability, we will build a AI workflow leveraging a first important concept of AgentKit:
 
-* [Agents](/concepts/agents): Agents act as a wrapper around the LLM (ex: Anthropic), providing a structured way to interact with it.
+* [Agents](mdc:concepts/agents): Agents act as a wrapper around the LLM (ex: Anthropic), providing a structured way to interact with it.
 
 Let's start our Code Assistant by installing the required dependencies:
 
@@ -3794,7 +3794,7 @@ Our example code is now ready to be analyzed. Let's now implement the generation
 
 ### The generation step using AgentKit's Agent
 
-As covered in the introduction, [AgentKit's `createAgent()`](/reference/create-agent) is a wrapper around the LLM, providing a structured way to interact with it with 3 main properties:
+As covered in the introduction, [AgentKit's `createAgent()`](mdc:reference/create-agent) is a wrapper around the LLM, providing a structured way to interact with it with 3 main properties:
 
 * `name`: A unique identifier for the agent.
 * `system`: A description of the agent's purpose.
@@ -3930,7 +3930,7 @@ Congratulations! You've just built your first AI workflow using AgentKit.
 Let's recap what we've learned so far:
 
 * **A RAG workflow** is a specific type of AI workflow that generally consist of two steps: retrieval (fetching relevant information) and generation (creating a response with a LLM).
-  * *Note that most RAG workflows in production consist of more than two steps and combine multiple sources of information and generation steps. You can see an example in [this blog post](https://www.inngest.com/blog/next-generation-ai-workflows?ref=agentkit-docs).*
+  * *Note that most RAG workflows in production consist of more than two steps and combine multiple sources of information and generation steps. You can see an example in [this blog post](mdc:https:/www.inngest.com/blog/next-generation-ai-workflows?ref=agentkit-docs).*
 * **AgentKit's `createAgent()`** is a wrapper around the LLM, providing a structured way to interact with a LLM model.
   * *The use of a single Agent is often sufficient to power chatbots or extract structured data from a given text.*
 
@@ -3951,7 +3951,7 @@ Source: https://agentkit.inngest.com/guided-tour/overview
 A comprehensive guide to building AI Agents with AgentKit
 
 AI Agents can be a complex topic to understand and differentiate from RAG, AI workflows, Agentic workflows, and more.
-This guide will provide a definition of AI Agents with practical examples inspired by the [Building effective agents](https://www.anthropic.com/research/building-effective-agents) manifesto from Anthropic.
+This guide will provide a definition of AI Agents with practical examples inspired by the [Building effective agents](mdc:https:/www.anthropic.com/research/building-effective-agents) manifesto from Anthropic.
 
 Developing AI applications leverages multiple patterns from AI workflows with static steps to fully autonomous AI Agents, each fitting specific use cases.
 The best way to start is to begin simple and iterate towards complexity.
@@ -3986,17 +3986,17 @@ Source: https://agentkit.inngest.com/integrations/browserbase
 
 Develop AI Agents that can browse the web
 
-[Browserbase](https://www.browserbase.com/) provides managed [headless browsers](https://docs.browserbase.com/introduction/what-is-headless-browser) to
+[Browserbase](mdc:https:/www.browserbase.com) provides managed [headless browsers](mdc:https:/docs.browserbase.com/introduction/what-is-headless-browser) to
 enable Agents to browse the web autonomously.
 
 There are two ways to use Browserbase with AgentKit:
 
 * **Create your own Browserbase tools**: useful if you want to build simple actions on webpages with manual browser control.
-* **Use Browserbase's [Stagehand](https://www.stagehand.dev/) library as tools**: a better approach for autonomous browsing and resilient scraping.
+* **Use Browserbase's [Stagehand](mdc:https:/www.stagehand.dev) library as tools**: a better approach for autonomous browsing and resilient scraping.
 
 ## Building AgentKit tools using Browserbase
 
-Creating AgentKit [tools](/concepts/tools) using the Browserbase TypeScript SDK is straightforward.
+Creating AgentKit [tools](mdc:concepts/tools) using the Browserbase TypeScript SDK is straightforward.
 
 <Steps>
   <Step title="Install AgentKit">
@@ -4142,7 +4142,7 @@ Creating AgentKit [tools](/concepts/tools) using the Browserbase TypeScript SDK 
     <Tip>
       We recommend building tools using Browserbase using Inngest's `step.run()` function. This ensures that the tool will only run once across multiple runs.
 
-      More information about using `step.run()` can be found in the [Multi steps tools](/advanced-patterns/multi-steps-tools) page.
+      More information about using `step.run()` can be found in the [Multi steps tools](mdc:advanced-patterns/multi-steps-tools) page.
     </Tip>
   </Step>
 </Steps>
@@ -4164,7 +4164,7 @@ You will find a complete example of a Reddit search agent using Browserbase in t
 
 ## Enable autonomous browsing with Stagehand
 
-Building AgentKit tools using [Stagehand](https://www.stagehand.dev/) gives more autonomy to your agents.
+Building AgentKit tools using [Stagehand](mdc:https:/www.stagehand.dev) gives more autonomy to your agents.
 
 Stagehand comes with 4 primary API that can be directly used as tools:
 
@@ -4293,7 +4293,7 @@ Source: https://agentkit.inngest.com/integrations/e2b
 
 Develop Coding Agents using E2B Sandboxes as tools
 
-[E2B](https://e2b.dev) is an open-source runtime for executing AI-generated code in secure cloud sandboxes. Made for agentic & AI use cases.
+[E2B](mdc:https:/e2b.dev) is an open-source runtime for executing AI-generated code in secure cloud sandboxes. Made for agentic & AI use cases.
 
 E2B is a perfect fit to build Coding Agents that can write code, fix bugs, and more.
 
@@ -4475,12 +4475,12 @@ E2B is a perfect fit to build Coding Agents that can write code, fix bugs, and m
 
     ```
 
-    You will find the complete example in the [E2B Coding Agent example](https://github.com/inngest/agent-kit/tree/main/examples/e2b-coding-agent#readme).
+    You will find the complete example in the [E2B Coding Agent example](mdc:https:/github.com/inngest/agent-kit/tree/main/examples/e2b-coding-agent#readme).
 
     <Tip>
       **Designing useful tools**
 
-      As covered in Anthropic's ["Tips for Building AI Agents"](https://www.youtube.com/watch?v=LP5OCa20Zpg),
+      As covered in Anthropic's ["Tips for Building AI Agents"](mdc:https:/www.youtube.com/watch?v=LP5OCa20Zpg),
       the best Agents Tools are the ones that you will need to accomplish the task by yourself.
 
       Do not map tools directly to the underlying API, but rather design tools that are useful for the Agent to accomplish the task.
@@ -4528,10 +4528,10 @@ Source: https://agentkit.inngest.com/integrations/smithery
 
 Provide your Agents with hundred of prebuilt tools to interact with
 
-[Smithery](https://smithery.ai/) is an MCP ([Model Context Protocol](https://modelcontextprotocol.io/introduction)) servers registry, listing more than 2,000 MCP servers across multiple use cases:
+[Smithery](mdc:https:/smithery.ai) is an MCP ([Model Context Protocol](mdc:https:/modelcontextprotocol.io/introduction)) servers registry, listing more than 2,000 MCP servers across multiple use cases:
 
-* Code related tasks (ex: GitHub, [E2B](/integrations/e2b))
-* Web Search Integration (ex: Brave, [Browserbase](/integrations/browserbase))
+* Code related tasks (ex: GitHub, [E2B](mdc:integrations/e2b))
+* Web Search Integration (ex: Brave, [Browserbase](mdc:integrations/browserbase))
 * Database Integration (ex: Neon, Supabase)
 * Financial Market Data
 * Data & App Analysis
@@ -4627,7 +4627,7 @@ Provide your Agents with hundred of prebuilt tools to interact with
   </Step>
 
   <Step title="Add the Neon MCP Smithery Server to your Agent">
-    Add the [Neon MCP Smithery Server](https://smithery.ai/server/neon/) to your Agent by using `createSmitheryUrl()` from the `@smithery/sdk/config.js` module
+    Add the [Neon MCP Smithery Server](mdc:https:/smithery.ai/server/neon) to your Agent by using `createSmitheryUrl()` from the `@smithery/sdk/config.js` module
     and providing it to the Agent via the `mcpServers` option:
 
     ```typescript {7, 10-12, 31-39}
@@ -4702,7 +4702,7 @@ Provide your Agents with hundred of prebuilt tools to interact with
 You will find the complete example on GitHub:
 
 <Card title="Neon Assistant Agent (using MCP)" href="https://github.com/inngest/agent-kit/tree/main/examples/mcp-neon-agent/#readme" icon="github">
-  This examples shows how to use the [Neon MCP Smithery Server](https://smithery.ai/server/neon/) to build a Neon Assistant Agent that can help you manage your Neon databases.
+  This examples shows how to use the [Neon MCP Smithery Server](mdc:https:/smithery.ai/server/neon) to build a Neon Assistant Agent that can help you manage your Neon databases.
 
   {" "}
 
@@ -4745,19 +4745,19 @@ With AgentKit, you get:
 
 ✨ **Simple and composable primitives** to build from simple Support Agents to semi-autonomous Coding Agents.
 
-🧠 **Support for [OpenAI, Anthropic, Gemini](/concepts/models)** and all OpenAI API compatible models.
+🧠 **Support for [OpenAI, Anthropic, Gemini](mdc:concepts/models)** and all OpenAI API compatible models.
 
-🛠️ **Powerful tools building API** with support for [Claude's Model Context Protocol as tools](/advanced-patterns/mcp).
+🛠️ **Powerful tools building API** with support for [Claude's Model Context Protocol as tools](mdc:advanced-patterns/mcp).
 
-🔌 **Integrates** with your favorite AI libraries and products (ex: [E2B](/integrations/e2b), [Browserbase](/integrations/browserbase), [Smithery](/integrations/smithery)).
+🔌 **Integrates** with your favorite AI libraries and products (ex: [E2B](mdc:integrations/e2b), [Browserbase](mdc:integrations/browserbase), [Smithery](mdc:integrations/smithery)).
 
-📊 **[Local Live traces](/getting-started/local-development) and input/output logs** when combined with the Inngest Dev Server.
+📊 **[Local Live traces](mdc:getting-started/local-development) and input/output logs** when combined with the Inngest Dev Server.
 
 <br />
 
-New to AI Agents? Follow our [Guided Tour](/guided-tour/overview) to learn how to build your first AgentKit application.
+New to AI Agents? Follow our [Guided Tour](mdc:guided-tour/overview) to learn how to build your first AgentKit application.
 
-All the above sounds familiar? Check our **[Getting started section](#getting-started)** or the **["How AgentKit works" section](#how-agentkit-works)** to learn more about AgentKit's architecture.
+All the above sounds familiar? Check our **[Getting started section](mdc:#getting-started)** or the **["How AgentKit works" section](mdc:#how-agentkit-works)** to learn more about AgentKit's architecture.
 
 ## Getting started
 
@@ -4787,11 +4787,11 @@ All the above sounds familiar? Check our **[Getting started section](#getting-st
   <div className="flex-1 py-8 mr-5">
     AgentKit enables developers to compose simple single-agent systems or entire
     *systems of agents* in which multiple agents can work together.
-    **[Agents](/concepts/agents)** are combined into
-    **[Networks](concepts/networks)** which include a
-    **[Router](concepts/routers)** to determine which Agent should be called.
-    Their system's memory is recorded as Network **[State](concepts/state)** which
-    can be used by the Router, Agents or **[Tools](concepts/tools)** to
+    **[Agents](mdc:concepts/agents)** are combined into
+    **[Networks](mdc:concepts/networks)** which include a
+    **[Router](mdc:concepts/routers)** to determine which Agent should be called.
+    Their system's memory is recorded as Network **[State](mdc:concepts/state)** which
+    can be used by the Router, Agents or **[Tools](mdc:concepts/tools)** to
     collaborate on tasks.
   </div>
 
@@ -4847,9 +4847,9 @@ const result = await network.run(input, ({ network }) => {
 
 ## `llms.txt`
 
-You can access the entire AgentKit docs in markdown format at [agentkit.inngest.com/llms-full.txt](https://agentkit.inngest.com/llms-full.txt). This is useful for passing the entire docs to an LLM, AI-enabled IDE, or similar tool  to answer questions about AgentKit.
+You can access the entire AgentKit docs in markdown format at [agentkit.inngest.com/llms-full.txt](mdc:https:/agentkit.inngest.com/llms-full.txt). This is useful for passing the entire docs to an LLM, AI-enabled IDE, or similar tool  to answer questions about AgentKit.
 
-If your context window is too small to pass the entire docs, you can use the shorter [agentkit.inngest.com/llms.txt](https://agentkit.inngest.com/llms.txt) file which offers a table of contents for LLMs or other developer tools to index the docs more easily.
+If your context window is too small to pass the entire docs, you can use the shorter [agentkit.inngest.com/llms.txt](mdc:https:/agentkit.inngest.com/llms.txt) file which offers a table of contents for LLMs or other developer tools to index the docs more easily.
 
 
 # createAgent
@@ -4897,13 +4897,13 @@ const agent = createAgent({
 <ParamField path="tools" type="array<TypedTool>">
   Defined tools that an agent can call.
 
-  Tools are created via [`createTool`](/reference/createTool).
+  Tools are created via [`createTool`](mdc:reference/createTool).
 </ParamField>
 
 <ParamField path="lifecycle" type="Lifecycle">
   Lifecycle hooks that can intercept and modify inputs and outputs throughout the stages of execution of `run()`.
 
-  Learn about each [lifecycle](#lifecycle) hook that can be defined below.
+  Learn about each [lifecycle](mdc:#lifecycle) hook that can be defined below.
 </ParamField>
 
 ### `lifecycle`
@@ -4925,7 +4925,7 @@ const agent = createAgent({
 <ParamField path="onFinish" type="function">
   Called after tool calling has completed. The `onFinish` hook can be used to:
 
-  * Modify the `InferenceResult` including the outputs prior to the result being added to [Network state](/concepts/network-state).
+  * Modify the `InferenceResult` including the outputs prior to the result being added to [Network state](mdc:concepts/network-state).
 </ParamField>
 
 <CodeGroup>
@@ -4992,7 +4992,7 @@ const network = createNetwork({
 <ParamField path="tools" type="array<TypedTool>">
   Defined tools that an agent can call.
 
-  Tools are created via [`createTool`](/reference/createTool).
+  Tools are created via [`createTool`](mdc:reference/createTool).
 </ParamField>
 
 
@@ -5063,7 +5063,7 @@ The handler function receives two arguments:
 1. `input`: The validated parameters matching your schema definition
 2. `context`: An object containing:
    * `agent`: The Agent instance that called the tool
-   * `network`: The network instance, providing access to the [`network.state`](/reference/state).
+   * `network`: The network instance, providing access to the [`network.state`](mdc:reference/state).
 
 Example handler with full type annotations:
 
@@ -5311,7 +5311,7 @@ const agent = createAgent({
 "aqa"
 ```
 
-For the latest list of available models, see [Google's Gemini model overview](https://cloud.google.com/vertex-ai/docs/generative-ai/model-reference/gemini).
+For the latest list of available models, see [Google's Gemini model overview](mdc:https:/cloud.google.com/vertex-ai/docs/generative-ai/model-reference/gemini).
 
 ## Limitations
 
@@ -5355,7 +5355,7 @@ const agent = createAgent({
 <ParamField path="model" type="string" required>
   ID of the model to use.
 
-  See the [xAI models list](https://docs.x.ai/docs/models).
+  See the [xAI models list](mdc:https:/docs.x.ai/docs/models).
 </ParamField>
 
 <ParamField path="apiKey" type="string">
@@ -5382,7 +5382,7 @@ const agent = createAgent({
 "grok-3-latest";
 ```
 
-For the latest list of available models, see [xAI's Grok model overview](https://docs.x.ai/docs/models).
+For the latest list of available models, see [xAI's Grok model overview](mdc:https:/docs.x.ai/docs/models).
 
 ## Limitations
 
@@ -5461,7 +5461,7 @@ Source: https://agentkit.inngest.com/reference/network-router
 
 Controlling the flow of execution between agents in a Network.
 
-The `defaultRouter` option in `createNetwork` defines how agents are coordinated within a Network. It can be either a [Function Router](#function-router) or a [Routing Agent](#routing-agent).
+The `defaultRouter` option in `createNetwork` defines how agents are coordinated within a Network. It can be either a [Function Router](mdc:#function-router) or a [Routing Agent](mdc:#routing-agent).
 
 ## Function Router
 
@@ -5503,7 +5503,7 @@ const network = createNetwork({
 <ParamField path="network" type="Network">
   The network instance, including its state and history.
 
-  See [`Network.State`](/reference/state) for more details.
+  See [`Network.State`](mdc:reference/state) for more details.
 </ParamField>
 
 <ParamField path="stack" type="Agent[]">
@@ -5517,7 +5517,7 @@ const network = createNetwork({
 <ParamField path="lastResult" type="InferenceResult">
   The result from the previously called agent.
 
-  See [`InferenceResult`](/reference/state#inferenceresult) for more details.
+  See [`InferenceResult`](mdc:reference/state#inferenceresult) for more details.
 </ParamField>
 
 ### Return Values
@@ -5603,8 +5603,8 @@ Returns a `RoutingAgent` instance that can be used as a network's `defaultRouter
 
 ## Related APIs
 
-* [`createNetwork`](/reference/create-network)
-* [`Network.State`](/reference/state)
+* [`createNetwork`](mdc:reference/create-network)
+* [`Network.State`](mdc:reference/state)
 
 
 # createState
@@ -5646,7 +5646,7 @@ network.run("<query>", { state })
 The `State` class provides typed data accesible via the `data` property.
 
 <Info>
-  Learn more about the State use cases in the [State](/docs/concepts/state) concept guide.
+  Learn more about the State use cases in the [State](mdc:docs/concepts/state) concept guide.
 </Info>
 
 <ParamField path="data" type="object<T>">

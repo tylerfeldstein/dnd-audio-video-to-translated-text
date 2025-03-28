@@ -14,7 +14,7 @@ import {
 import { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Loader2, AlertTriangle, Sparkles, Copy, BrainCircuit } from "lucide-react";
+import { Loader2, AlertTriangle, Sparkles, Copy, BrainCircuit, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { PROMPT_TYPES } from "@/actions/aiEnhanceTool/promptTypes";
@@ -28,9 +28,10 @@ interface AIEnhancementPanelProps {
   mediaId: Id<"media">;
   text: string; // Text to enhance (original transcription or translation)
   label?: string;
+  onTextToSpeech?: (text: string, language?: string) => void;
 }
 
-export function AIEnhancementPanel({ mediaId, text, label = "AI Enhancement" }: AIEnhancementPanelProps) {
+export function AIEnhancementPanel({ mediaId, text, label = "AI Enhancement", onTextToSpeech }: AIEnhancementPanelProps) {
   const { user } = useUser();
   const [selectedPromptType, setSelectedPromptType] = useState<string>("");
   const [isEnhancing, setIsEnhancing] = useState(false);
@@ -283,15 +284,27 @@ export function AIEnhancementPanel({ mediaId, text, label = "AI Enhancement" }: 
                       </div>
                       <div className="p-4">
                         <p className="whitespace-pre-wrap text-sm mb-3 text-gray-800 dark:text-gray-200 leading-relaxed">{currentEnhancement.enhancedText}</p>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => copyToClipboard(currentEnhancement.enhancedText)}
-                          className="bg-white hover:bg-indigo-50 dark:bg-gray-900 dark:hover:bg-indigo-900/20 border-gray-200 dark:border-gray-800 text-indigo-600 dark:text-indigo-400 transition-colors"
-                        >
-                          <Copy className="h-3.5 w-3.5 mr-1.5" />
-                          Copy enhanced text
-                        </Button>
+                        <div className="mt-3 flex flex-wrap gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(currentEnhancement.enhancedText)}
+                            className="flex items-center gap-1 text-xs bg-gradient-to-r from-gray-50 to-white hover:from-indigo-50 hover:to-blue-50 dark:from-gray-900 dark:to-gray-950 dark:hover:from-indigo-950/30 dark:hover:to-blue-950/30 transition-all duration-300 border-gray-200 dark:border-gray-800"
+                          >
+                            <Copy className="h-3.5 w-3.5" /> Copy
+                          </Button>
+                          {onTextToSpeech && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs rounded-md"
+                              onClick={() => onTextToSpeech?.(currentEnhancement.enhancedText, 'en')}
+                            >
+                              <Volume2 className="mr-1 h-3 w-3" />
+                              Text to Speech
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </motion.div>
                     

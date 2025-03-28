@@ -9,13 +9,14 @@ import { Id } from "@/convex/_generated/dataModel";
 import { requestTranslation } from "@/actions/translation/translation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Loader2, Globe, Languages, Copy } from "lucide-react";
+import { Loader2, Globe, Languages, Copy, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { languages, getLanguageName, getAvailableTargetLanguages } from "@/lib/languages";
 import { Badge } from "@/components/ui/badge";
 import { GrammarCheckPanel } from "./grammar-check-panel";
 import { AIEnhancementPanel } from "./ai-enhancement-panel";
 import { motion } from "framer-motion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Translation {
   targetLanguage: string;
@@ -29,11 +30,13 @@ interface TranslationPanelProps {
   mediaId: Id<"media">;
   detectedLanguage?: string;
   translations?: Translation[];
+  onTextToSpeech?: (text: string, language?: string) => void;
 }
 
-export function TranslationPanel({ mediaId, detectedLanguage }: TranslationPanelProps) {
+export function TranslationPanel({ mediaId, detectedLanguage, onTextToSpeech }: TranslationPanelProps) {
   const { user } = useUser();
   const [selectedLanguage, setSelectedLanguage] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("translation");
 
   // Subscribe to media updates to get real-time translation updates
   const media = useQuery(api.media.getMediaById, { mediaId });
@@ -225,97 +228,116 @@ export function TranslationPanel({ mediaId, detectedLanguage }: TranslationPanel
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
-          <Card className="p-4 overflow-hidden border-gray-200 dark:border-gray-800 bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900 shadow-md">
-            <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100 dark:border-gray-800/70">
-              <div className="flex items-center gap-2">
-                <h4 className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  Translation 
-                  <span className="bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent dark:from-violet-400 dark:to-purple-400 font-medium">
-                    ({getLanguageName(selectedLanguage)})
-                  </span>
-                </h4>
-                {getStatusBadge(currentTranslation.status)}
-              </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {currentTranslation.status === "completed" ? "Translated" : "Last updated"} at: {formatDate(currentTranslation.translatedAt)}
-              </span>
-            </div>
-            
-            {currentTranslation.error ? (
-              <div className="p-3 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 rounded-md border border-red-100 dark:border-red-800/30">
-                <p className="text-sm">{currentTranslation.error}</p>
-              </div>
-            ) : (
-              <>
-                {currentTranslation.status === "completed" && currentTranslation.translatedText ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="space-y-4"
-                  >
-                    <div className="rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 border border-gray-100 dark:border-gray-800 shadow-sm">
-                      <div className="bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 px-4 py-2 border-b border-violet-100 dark:border-violet-900/30">
-                        <h5 className="font-medium text-violet-800 dark:text-violet-300 flex items-center justify-between">
-                          <span>Translated Text</span>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={() => copyToClipboard(currentTranslation.translatedText)}
-                            className="h-7 px-2 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20"
-                          >
-                            <Copy className="h-3.5 w-3.5 mr-1.5" />
-                            <span className="text-xs">Copy</span>
-                          </Button>
-                        </h5>
-                      </div>
-                      <div className="p-4">
-                        <p className="whitespace-pre-wrap text-sm mb-2 text-gray-800 dark:text-gray-200 leading-relaxed">
-                          {currentTranslation.translatedText}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* Grammar Check for translated text - now wrapped with motion */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.2 }}
-                      className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800/50"
-                    >
-                      <GrammarCheckPanel 
-                        text={currentTranslation.translatedText} 
-                        label={`${getLanguageName(selectedLanguage)} Grammar Check`}
-                        language={selectedLanguage}
-                      />
-                    </motion.div>
-                    
-                    {/* AI Enhancement for translated text - now wrapped with motion */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.3 }}
-                      className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800/50"
-                    >
-                      <AIEnhancementPanel 
-                        mediaId={mediaId} 
-                        text={currentTranslation.translatedText} 
-                        label={`Enhance ${getLanguageName(selectedLanguage)} Translation`}
-                      />
-                    </motion.div>
-                  </motion.div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-8 px-4">
-                    <div className="w-16 h-16 flex items-center justify-center rounded-full bg-gradient-to-br from-violet-100 to-purple-100 dark:from-violet-900/20 dark:to-purple-900/20 mb-4">
-                      <Loader2 className="h-8 w-8 text-violet-500 dark:text-violet-400 animate-spin" />
-                    </div>
-                    <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-                      Translating to {getLanguageName(selectedLanguage)}...
-                    </p>
+          <Tabs 
+            value={activeTab} 
+            onValueChange={setActiveTab}
+            className="w-full mt-6"
+          >
+            <TabsList className="grid w-full grid-cols-3 p-1 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-950 rounded-lg mb-4">
+              <TabsTrigger 
+                value="translation" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-500 data-[state=active]:text-white dark:data-[state=active]:from-violet-600 dark:data-[state=active]:to-purple-600 transition-all duration-300"
+              >
+                Translation
+              </TabsTrigger>
+              <TabsTrigger 
+                value="grammar" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-500 data-[state=active]:text-white dark:data-[state=active]:from-emerald-600 dark:data-[state=active]:to-green-600 transition-all duration-300"
+                disabled={!currentTranslation || currentTranslation.status !== "completed"}
+              >
+                Grammar Check
+              </TabsTrigger>
+              <TabsTrigger 
+                value="enhance" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-blue-500 data-[state=active]:text-white dark:data-[state=active]:from-indigo-600 dark:data-[state=active]:to-blue-600 transition-all duration-300"
+                disabled={!currentTranslation || currentTranslation.status !== "completed"}
+              >
+                AI Enhancement
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="translation">
+              <Card className="p-4 overflow-hidden border-gray-200 dark:border-gray-800 bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900 shadow-md">
+                <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100 dark:border-gray-800/70">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                      Translation 
+                      <span className="bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent dark:from-violet-400 dark:to-purple-400 font-medium">
+                        ({getLanguageName(selectedLanguage)})
+                      </span>
+                    </h4>
+                    {getStatusBadge(currentTranslation.status)}
                   </div>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {currentTranslation.status === "completed" ? "Translated" : "Last updated"} at: {formatDate(currentTranslation.translatedAt)}
+                  </span>
+                </div>
+                
+                {currentTranslation.error ? (
+                  <div className="p-3 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 rounded-md border border-red-100 dark:border-red-800/30">
+                    <p className="text-sm">{currentTranslation.error}</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="rounded-md bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 p-4 relative mb-4">
+                      <div className="prose dark:prose-invert max-w-none">
+                        <p className="whitespace-pre-wrap text-gray-800 dark:text-gray-200">{currentTranslation.translatedText}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(currentTranslation.translatedText)}
+                        className="text-sm bg-gradient-to-r from-gray-50 to-white hover:from-violet-50 hover:to-purple-50 dark:from-gray-900 dark:to-gray-950 dark:hover:from-violet-950/30 dark:hover:to-purple-950/30 transition-all duration-300 border-gray-200 dark:border-gray-800"
+                      >
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onTextToSpeech?.(currentTranslation.translatedText, selectedLanguage)}
+                        className="text-sm bg-gradient-to-r from-gray-50 to-white hover:from-violet-50 hover:to-purple-50 dark:from-gray-900 dark:to-gray-950 dark:hover:from-violet-950/30 dark:hover:to-purple-950/30 transition-all duration-300 border-gray-200 dark:border-gray-800"
+                      >
+                        <Volume2 className="mr-2 h-4 w-4" />
+                        Text to Speech
+                      </Button>
+                    </div>
+                  </>
                 )}
-              </>
-            )}
-          </Card>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="grammar">
+              {currentTranslation && currentTranslation.status === "completed" && (
+                <Card className="pt-4 overflow-hidden border-gray-200 dark:border-gray-800">
+                  <GrammarCheckPanel 
+                    mediaId={mediaId} 
+                    text={currentTranslation.translatedText}
+                    label="Grammar Check for Translation"
+                    language={selectedLanguage}
+                    onTextToSpeech={(text) => onTextToSpeech?.(text, selectedLanguage)}
+                  />
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="enhance">
+              {currentTranslation && currentTranslation.status === "completed" && (
+                <Card className="pt-4 overflow-hidden border-gray-200 dark:border-gray-800">
+                  <AIEnhancementPanel 
+                    mediaId={mediaId} 
+                    text={currentTranslation.translatedText}
+                    label="AI Enhancement for Translation"
+                    onTextToSpeech={(text) => onTextToSpeech?.(text, selectedLanguage)}
+                  />
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
         </motion.div>
       )}
     </motion.div>
