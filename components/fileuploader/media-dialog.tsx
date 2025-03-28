@@ -29,7 +29,6 @@ import { GrammarCheckPanel } from "./grammar-check-panel";
 import { AIEnhancementPanel } from "./ai-enhancement-panel";
 import { ConvexReactClient } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { getVideoSupportInfo } from "@/utils/compression";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
@@ -73,14 +72,13 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
   const [refreshedFileUrl, setRefreshedFileUrl] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
-  const [showDebug, setShowDebug] = useState(false);
-  const [videoSupport, setVideoSupport] = useState<Record<string, boolean>>({});
   const [openAccordion, setOpenAccordion] = useState<Record<string, string[]>>({
     transcription: ["transcription-original"],
     media: [],
     enhancement: [],
     translation: []
   });
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
 
   // Calculate optimal video height based on screen size
   useEffect(() => {
@@ -127,19 +125,13 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
     }
   }, [isOpen]);
 
-  // Check video format support
-  useEffect(() => {
-    if (isOpen && media?.mimeType?.includes("video")) {
-      setVideoSupport(getVideoSupportInfo());
-    }
-  }, [isOpen, media]);
-
-  // Ensure media loads properly when dialog opens
+  // Update the useEffect for media loading to handle large files better
   useEffect(() => {
     if (isOpen && media) {
       // Reset state when opening dialog
       setErrorDetails(null);
       setRefreshedFileUrl(null);
+      setIsVideoLoading(true);
       
       const fileUrl = refreshedFileUrl || media.fileUrl;
       if (fileUrl) {
@@ -420,7 +412,7 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
                     )}
                     {isVideo && currentFileUrl ? (
                       <div className="flex flex-col items-center w-full">
-                        <div className="w-full bg-gradient-to-b from-gray-900/50 to-black p-4 flex justify-center">
+                        <div className="w-full bg-gradient-to-b from-gray-900/50 to-black p-4 flex justify-center relative">
                           <video
                             ref={videoRef}
                             controls
@@ -431,33 +423,60 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
                               margin: '0 auto'
                             }}
                             controlsList="nodownload"
-                            preload="auto"
+                            preload="metadata"
                             playsInline
                             autoPlay={false}
                             crossOrigin="anonymous"
-                            onLoadedMetadata={() => console.log("Video metadata loaded successfully")}
-                            onCanPlay={() => console.log("Video can play")}
-                            onLoadStart={() => console.log("Video load started")}
+                            onLoadedMetadata={() => {
+                              setIsVideoLoading(false);
+                            }}
+                            onCanPlay={() => {
+                              setIsVideoLoading(false);
+                              setErrorDetails(null);
+                            }}
+                            onLoadStart={() => {
+                              setIsVideoLoading(true);
+                            }}
                             onError={(e) => {
-                              // Log detailed error information
-                              console.error("Video error:", e);
-                              if (videoRef.current) {
-                                const errorCode = videoRef.current.error?.code;
-                                const errorMessage = videoRef.current.error?.message;
-                                console.error("Video error code:", errorCode);
-                                console.error("Video error message:", errorMessage);
-                                setErrorDetails(`Error playing video (${errorCode}): ${errorMessage || 'Unknown error'}`);
+                              setIsVideoLoading(false);
+                              
+                              if (videoRef.current && videoRef.current.error && videoRef.current.error.code) {
+                                const errorCode = videoRef.current.error.code;
+                                const errorMessage = videoRef.current.error.message;
+                                
+                                let userMessage = "Error playing video";
+                                
+                                switch(errorCode) {
+                                  case 1: userMessage = "Media playback was aborted"; break;
+                                  case 2: userMessage = "Network error occurred while loading media"; break;
+                                  case 3: userMessage = "Media decoding failed - this format may not be supported by your browser"; break;
+                                  case 4: userMessage = "Media source not found or access denied"; break;
+                                }
+                                
+                                setErrorDetails(`${userMessage}${errorMessage ? ` (${errorMessage})` : ''}`);
                               }
                             }}
                           >
                             <source src={currentFileUrl} type={media.mimeType} />
                             <source src={currentFileUrl} type="video/mp4" />
                             <source src={currentFileUrl} type="video/webm" />
+                            <source src={currentFileUrl} type="video/quicktime" />
                             Your browser does not support the video tag.
                           </video>
                         </div>
                         
-                        {errorDetails && (
+                        {/* Add loading indicator while video is loading */}
+                        {isVideoLoading && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
+                            <div className="flex flex-col items-center gap-2">
+                              <Loader2 className="h-8 w-8 animate-spin text-white" />
+                              <p className="text-white text-sm">Loading video...</p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Only show error message if it's a real error and video isn't loading */}
+                        {errorDetails && !isVideoLoading && (
                           <div className="p-3 mt-3 bg-gradient-to-r from-red-100 to-red-50 dark:from-red-900/30 dark:to-red-900/20 text-red-800 dark:text-red-200 text-sm rounded-md w-full mx-4 text-center border border-red-200 dark:border-red-800/50 shadow-sm">
                             {errorDetails}
                             <div className="flex justify-center mt-3 space-x-2">
@@ -473,91 +492,29 @@ export function MediaDialog({ media, isOpen, onClose }: MediaDialogProps) {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setShowDebug(!showDebug)}
-                                className="bg-white hover:bg-gray-50 dark:bg-gray-950 dark:hover:bg-gray-900 border-gray-200 dark:border-gray-800/50"
-                              >
-                                {showDebug ? "Hide Debug Info" : "Show Debug Info"}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
                                 asChild
                                 className="bg-white hover:bg-blue-50 dark:bg-gray-950 dark:hover:bg-blue-900/30 border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-300"
                               >
                                 <a href={currentFileUrl} target="_blank" rel="noopener noreferrer">
-                                  Open in New Tab
+                                  Open in Browser
+                                </a>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                asChild
+                                className="bg-white hover:bg-green-50 dark:bg-gray-950 dark:hover:bg-green-900/30 border-green-200 dark:border-green-800/50 text-green-700 dark:text-green-300"
+                              >
+                                <a 
+                                  href={currentFileUrl} 
+                                  download={media.name || "video.mp4"}
+                                >
+                                  Download
                                 </a>
                               </Button>
                             </div>
-                            
-                            {showDebug && (
-                              <div className="mt-4 p-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 text-left rounded-md overflow-auto max-h-[300px] border border-gray-200 dark:border-gray-800 shadow-inner">
-                                <h4 className="font-semibold text-gray-800 dark:text-gray-200 border-b pb-2 mb-3 border-gray-200 dark:border-gray-800">Debug Information</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  <div>
-                                    <p className="mb-1"><strong className="text-gray-700 dark:text-gray-300">Media Type:</strong> <span className="text-gray-600 dark:text-gray-400">{media.mimeType}</span></p>
-                                    <p className="mb-1"><strong className="text-gray-700 dark:text-gray-300">File URL:</strong> <span className="text-gray-600 dark:text-gray-400">{currentFileUrl ? "Available" : "Not available"}</span></p>
-                                    <p className="mb-1"><strong className="text-gray-700 dark:text-gray-300">File Size:</strong> <span className="text-gray-600 dark:text-gray-400">{formatFileSize(media.size)}</span></p>
-                                  </div>
-                                 
-                                  <div>
-                                    <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Browser Video Support:</h4>
-                                    <ul className="list-disc pl-5 space-y-1">
-                                      {Object.entries(videoSupport).map(([format, supported]) => (
-                                        <li key={format} className={supported ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                                          {format}: {supported ? "Supported" : "Not supported"}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                </div>
-                                
-                                <p className="mt-4 p-2 bg-yellow-50 dark:bg-yellow-900/20 border-l-2 border-yellow-300 dark:border-yellow-700 rounded-r-md text-yellow-800 dark:text-yellow-300"><strong className="text-yellow-700 dark:text-yellow-400">Note:</strong> The video may have been compressed during upload, which could affect compatibility.</p>
-                                
-                                <div className="mt-4">
-                                  <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Alternative Player:</h4>
-                                  <div className="bg-black p-3 rounded-md overflow-hidden">
-                                    <iframe 
-                                      src={currentFileUrl}
-                                      width="100%" 
-                                      height="200" 
-                                      allow="autoplay; fullscreen"
-                                      title="Video Player"
-                                      className="border-0 rounded-md"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         )}
-
-                        {/* Add direct video controls even if no error */}
-                        <div className="mt-4 mb-4 flex justify-center space-x-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="bg-gradient-to-r from-gray-50 to-white hover:from-blue-50 hover:to-blue-50 dark:from-gray-900 dark:to-gray-950 dark:hover:from-blue-900/20 dark:hover:to-blue-900/30 transition-all duration-300 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300"
-                          >
-                            <a href={currentFileUrl} target="_blank" rel="noopener noreferrer">
-                              Open Video in New Tab
-                            </a>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="bg-gradient-to-r from-gray-50 to-white hover:from-green-50 hover:to-green-50 dark:from-gray-900 dark:to-gray-950 dark:hover:from-green-900/20 dark:hover:to-green-900/30 transition-all duration-300 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300"
-                          >
-                            <a 
-                              href={currentFileUrl} 
-                              download={media.name || "video.mp4"}
-                            >
-                              Download Video
-                            </a>
-                          </Button>
-                        </div>
                       </div>
                     ) : isVideo && !currentFileUrl && (
                       <div className="p-6 flex justify-center items-center min-h-[200px] w-full bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white">
